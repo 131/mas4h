@@ -1,0 +1,28 @@
+{
+  "name": "mas4h",
+  "version": "0.1.0",
+  "description": "Massive ssh bouncing",
+  "main": "index.js",
+  "dependencies": {
+    "nyks": "^0.7.11",
+    "ubk": "^0.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/131/mas4h.git"
+  },
+  "keywords": [
+    "ssh",
+    "ubk"
+  ],
+  "author": "Francois Leurent <131.php@cloudyks.org>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/131/mas4h/issues"
+  },
+  "homepage": "https://github.com/131/mas4h"
+}
