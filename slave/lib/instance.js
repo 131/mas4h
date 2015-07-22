@@ -3,6 +3,8 @@ var util = require('util'),
     http = require('http');
 
 var remove    = require('mout/array/remove');
+var contains  = require('mout/array/contains');
+var forIn     = require('mout/object/forIn');
 var ubkClient = require('ubk/client/tcp');
 var Class     = require('uclass');
 var SSH_Host  = require('./ssh_host.js');
@@ -13,6 +15,9 @@ var NS_mas4h = "mas4h";
 var Instance = new Class({
   Extends : ubkClient,
   Binds   : [
+    'validate_device',
+    'lost_device',
+
     'free_slot',
     'fetch_port',
     'ping',
@@ -21,30 +26,41 @@ var Instance = new Class({
   position:4,
   _localClients : {},
 
-  _ssh_host : null,
-
   port_range : [1000, 1020],
+  options : {
+    key : null, //put server private key here
+  },
 
   initialize:function(options){
     var self = this;
+    Instance.parent.initialize.apply(this, arguments);
 
-    this._ssh_host = new SSH_Host(null,
+    var server = new SSH_Host(this.options.key,
         this.validate_device,
         this.fetch_port,
         this.lost_device);
 
-    Instance.parent.initialize.call(this, options);
+
+    this.once('registered', function(){
+      console.log("Registered");
+      server.listen(0, '127.0.0.1', function() {
+          var port = this.address().port;
+          console.log('Listening on port ' , port);
+          self.send(NS_mas4h, "instance_ready", [port]);
+      });
+    });
+
   },
 
   validate_device : function(pubkey, chain) {
     //forward this to central server
-    this.send(NS_mas4h, "validate_device", pubkey, chain);
+    this.call_rpc(NS_mas4h, "validate_device", [pubkey], chain);
   },
 
   lost_device : function(client){
-
+    var self = this;
     //notify central server, the remove client reference
-    this.send(NS_mas4h, "lost_tunnel", {device_key:client.device_key}, function(){
+    this.call_rpc(NS_mas4h, "lost_tunnel", [client.device_key], function(){
       remove(self._localClients, client);
     });
   },
@@ -58,8 +74,11 @@ var Instance = new Class({
     client.localPort = free_port;
 
     //notify central server, then attach device key
-    this.send(NS_mas4h, "new_tunnel", {device_key:client.device_key, port:free_port}, function(){
-      self._localClients.push(client);
+    this.call_rpc(NS_mas4h, "new_tunnel", [client.device_key, free_port], function(err, ok){
+      if(err != null)
+        return chain(err);
+
+      self._localClients[client.device_key] = client;
       chain(null, free_port);
     });
   },
@@ -69,13 +88,16 @@ var Instance = new Class({
     var self = this,
         used = [];
 
-    Object.map(self._localClients, function(client){ used.push(client.localPort); });
+    forIn(self._localClients, function(client){
+      used.push(client.localPort);
+    });
+
 
     var min   = this.port_range[0],
         range = this.port_range[1] - min,
         start = Math.floor(Math.random() * range);
     for(var f=min+start, i=0; i< range; f=min + (start + i++)%range)
-      if(!used.contains(f))
+      if(!contains(used, f))
         return f;
 
     throw "No available port";

@@ -15,6 +15,8 @@ var SshHost = new Class({
     this.validate_device = validate_device;
     this.fetch_port      = fetch_port;
     this.lost_device     = lost_device;
+
+    this.listen = server.listen.bind(server);
   },
 
   new_client : function(client) {
@@ -22,7 +24,7 @@ var SshHost = new Class({
     console.log('Client connected!');
 
     client.once('request', this.forward_request.bind(this, client));
-    client.on('authentication', this.check_authentication.bind(this));
+    client.on('authentication', this.check_authentication.bind(this, client));
 
     client.on('ready', function() {
       console.log('Client authenticated!');
@@ -52,15 +54,18 @@ var SshHost = new Class({
     });
   },
 
-  check_authentication : function(ctx) {
+  check_authentication : function(client, ctx) {
 
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
 
-    this.validate_device(ctx.key.data.toString('ascii'), function(err, validated) {
-      if(!validated)
+    this.validate_device(ctx.key.data.toString('base64'), function(err, device_key) {
+      client.device_key = device_key;
+      console.log("FROM XENIOS VALIDATION IS ", err, device_key);
+
+      if(!device_key)
         return ctx.reject(['password', 'publickey'], true);
 
       if (ctx.signature) {
@@ -106,6 +111,7 @@ var SshHost = new Class({
 
     client.localNetServer = server;
     this.fetch_port(client, function(err, port) {
+      console.log("Fetched remote port ", port);
       if(err)
         return reject();
 

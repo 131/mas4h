@@ -6,6 +6,9 @@ var guid      = require('mout/random/guid');
 var ubkServer = require('ubk/server');
 var Class     = require('uclass');
 
+var NS_mas4h = "mas4h";
+
+
 var Server = new Class({
   Extends : ubkServer,
   Binds   : ['rest'],
@@ -24,13 +27,35 @@ var Server = new Class({
       Server.parent.initialize.call(this, options);
       //from ubk
     console.log(this.options);
-    this.slaves = this._clientsList;
+    this.slaves = {};
 
     var httpServer = http.createServer(this.rest);
 
     httpServer.listen(this.options.http_port, function(){
       console.log("HTTP server started on port %d", self.options.http_port);
     });
+
+    self.register_cmd(NS_mas4h, "instance_ready", function(client, query){
+      console.log("GOT READY", client);
+      client.remote_port = query.args[0];
+      self.slaves[client.client_key] = client;
+    });
+
+    self.register_rpc(NS_mas4h, "validate_device", this.validate_device);
+
+    self.register_cmd(NS_mas4h, "new_tunnel", function(slave, query){
+      console.log("Trying to open new lnk", slave.client_key, query);
+      var device_key = query.args[0], port = query.args[1];
+      self.lnks[device_key] = { slave : slave.client_key, port : port };
+      slave.respond(query, [null, port]);
+    });
+
+    self.register_rpc(NS_mas4h, "lost_tunnel", function(device_key, chain){
+      console.log("Lost client ", device_key);
+      delete self.lnks[device_key];
+      chain();
+    });
+
 
     //when an instance is gone, we can assume all existings lnks are dead
     this.on("base:unregistered_client", function(client){
@@ -45,40 +70,6 @@ var Server = new Class({
     });
   },
 
-  rest : function(req, res){
-    var self = this;
-
-    try {
-      if(req.url == "/link/new") {
-          var instance = keys(self.slaves).shuffle()[0];
-          if(!instance)
-            throw "Cannot find any instance";
-          var client = self.slaves[instance];
-          res.write(instance);
-          var lnk_id = guid();
-          console.log("New session %s", lnk_id);
-
-          var device_key = guid(), device = {
-            device_key    : device_key,
-            device_pubkey : "ssh-rsa " + device_key,
-          };
-
-          client.send("mas4h", "new", {lnk_id:lnk_id, device:device}, function(){
-            console.log("This is BACK FROM NEW");
-            self.lnks[lnk_id] = {instance:client};
-          });
-      }
-
-      if(req.url == "/link/list") {
-          res.write(Object.keys(self.lnks).join(','));
-      }
-
-
-      res.end("THIS IS BODY" + req.url);
-    } catch(e) {
-      res.end(e);
-    }
-  },
 
 });
 
