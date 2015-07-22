@@ -52,6 +52,16 @@ var Instance = new Class({
 
   },
 
+  connect : function(chain){
+    var self = this;
+    Instance.parent.connect.call(this, chain, function(){
+      console.log("Will reconnect shortly");
+      setTimeout(function(){
+        self.connect(chain);
+      }, 1000);
+    });
+  },
+
   validate_device : function(pubkey, chain) {
     //forward this to central server
     this.call_rpc(NS_mas4h, "validate_device", [pubkey], chain);
