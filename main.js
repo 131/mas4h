@@ -5,7 +5,7 @@ var Class       = require('uclass');
 
 
 var MeetingServer  = new Class({
-  Extends : require('./lib/server.js'),
+  Extends : require('master/lib/server.js'),
 
   validate_device : function(pubkey, chain){
 
@@ -36,7 +36,7 @@ server.start(function(){
 });
 
 
-var Instance = require('../slave/lib/instance.js')
+var Instance = require('slave/lib/instance.js')
 setTimeout(function(){
   var instance = new Instance({server_port:6000});
   instance.connect();
