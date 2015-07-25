@@ -1,15 +1,16 @@
 {
   "name": "mas4h",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Massive ssh bouncing",
   "main": "index.js",
   "dependencies": {
     "mout": "^0.11.0",
     "ssh2": "^0.4.10",
-    "nyks": "^0.7.11",
-    "ubk": "^0.1.1",
-    "uclass": "^1.1.0"
+    "nyks": "^0.8.0",
+    "ubk": "^1.0.0",
+    "uclass": "^2.0.1"
   },
+
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
