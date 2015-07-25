@@ -2,6 +2,7 @@ var http = require('http');
 
 var keys      = require('mout/object/keys');
 var guid      = require('mout/random/guid');
+var forIn     = require('mout/object/forin');
 
 var ubkServer = require('ubk/server');
 var Class     = require('uclass');
@@ -35,7 +36,11 @@ var Server = new Class({
       console.log("HTTP server started on port %d", self.options.http_port);
     });
 
+
     self.register_cmd(NS_mas4h, "instance_ready", function(client, query){
+      if(self.slaves[client.client_key])
+        return;
+
       console.log("GOT READY", client);
       client.remote_port = query.args[0];
       self.slaves[client.client_key] = client;
@@ -46,7 +51,7 @@ var Server = new Class({
     self.register_cmd(NS_mas4h, "new_tunnel", function(slave, query){
       console.log("Trying to open new lnk", slave.client_key, query);
       var device_key = query.args[0], port = query.args[1];
-      self.lnks[device_key] = { slave : slave.client_key, port : port };
+      self.lnks[device_key] = { instance : slave, port : port };
       slave.respond(query, [null, port]);
     });
 
@@ -59,8 +64,8 @@ var Server = new Class({
 
     //when an instance is gone, we can assume all existings lnks are dead
     this.on("base:unregistered_client", function(client){
-      Object.each(self.lnks, function(lnk, lnk_id){
-        console.log("Cleaning up deprecated lnk %s", lnk_id);
+      delete self.slaves[client.client_key];
+      forIn(self.lnks, function(lnk, lnk_id){
 
         if(lnk.instance == client) {
           console.log("Cleaning up deprecated lnk %s", lnk_id);

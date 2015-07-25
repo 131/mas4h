@@ -2,12 +2,13 @@ var util = require('util'),
     fs   = require('fs');
     http = require('http');
 
-var remove    = require('mout/array/remove');
+var md5       = require('nyks/crypt/md5');
 var contains  = require('mout/array/contains');
 var forIn     = require('mout/object/forIn');
 var ubkClient = require('ubk/client/tcp');
 var Class     = require('uclass');
 var SSH_Host  = require('./ssh_host.js');
+var utils     = require('ssh2').utils;
 
 var NS_mas4h = "mas4h";
 
@@ -21,6 +22,7 @@ var Instance = new Class({
     'free_slot',
     'fetch_port',
     'ping',
+    'stop',
   ],
 
   position:4,
@@ -33,7 +35,12 @@ var Instance = new Class({
 
   initialize:function(options){
     var self = this;
+
     Instance.parent.initialize.apply(this, arguments);
+
+    var key  = utils.parseKey(this.options.key);
+    this.client_key = md5(utils.genPublicKey(key).public);
+
 
     var server = new SSH_Host(this.options.key,
         this.validate_device,
@@ -41,24 +48,41 @@ var Instance = new Class({
         this.lost_device);
 
 
+    
     this.once('registered', function(){
       console.log("Registered");
       server.listen(0, '127.0.0.1', function() {
-          var port = this.address().port;
-          console.log('Listening on port ' , port);
-          self.send(NS_mas4h, "instance_ready", [port]);
+        server.port = this.address().port;
+        self.emit("registered");
       });
     });
 
+      //trigger every time the server is reachable
+    this.on("registered", function(){
+      if(!server.port)  //first round
+        return;
+      console.log("Sending registerration ack");
+      self.send(NS_mas4h, "instance_ready", [server.port]);
+    });
   },
 
   connect : function(chain){
     var self = this;
     Instance.parent.connect.call(this, chain, function(){
+      self.stop();
       console.log("Will reconnect shortly");
       setTimeout(function(){
         self.connect(chain);
-      }, 1000);
+      }, 3000);
+    });
+  },
+
+    //we lost main server lnk, cleaning everything up
+  stop : function() {
+    var self = this;
+    forIn(self._localClients, function(client, client_key){
+      client.destroy();
+      delete self._localClients[client.device_key];
     });
   },
 
@@ -71,7 +95,7 @@ var Instance = new Class({
     var self = this;
     //notify central server, the remove client reference
     this.call_rpc(NS_mas4h, "lost_tunnel", [client.device_key], function(){
-      remove(self._localClients, client);
+      delete self._localClients[client.device_key];
     });
   },
 
