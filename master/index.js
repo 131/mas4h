@@ -2,7 +2,7 @@ var http = require('http');
 
 var keys      = require('mout/object/keys');
 var guid      = require('mout/random/guid');
-var forIn     = require('mout/object/forin');
+var forIn     = require('mout/object/forIn');
 
 var ubkServer = require('ubk/server');
 var Class     = require('uclass');
