@@ -12,11 +12,6 @@ var NS_mas4h = "mas4h";
 
 var Server = new Class({
   Extends : ubkServer,
-  Binds   : ['rest'],
-
-  options : {
-    'http_port' : 6001,
-  },
 
     //current sessions
   lnks : {},
@@ -25,17 +20,7 @@ var Server = new Class({
   initialize:function(options) {
     var self = this;
 
-      Server.parent.initialize.call(this, options);
-      //from ubk
-    console.log(this.options);
-    this.slaves = {};
-
-    var httpServer = http.createServer(this.rest);
-
-    httpServer.listen(this.options.http_port, function(){
-      console.log("HTTP server started on port %d", self.options.http_port);
-    });
-
+    Server.parent.initialize.call(this, options);
 
     self.register_cmd(NS_mas4h, "instance_ready", function(client, query){
       if(self.slaves[client.client_key])

@@ -1,6 +1,6 @@
 {
   "name": "mas4h",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Massive ssh bouncing",
   "main": "index.js",
   "dependencies": {
