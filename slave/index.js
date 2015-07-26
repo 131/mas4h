@@ -29,8 +29,8 @@ var Instance = new Class({
 
   options : {
     key : null, //put server private key here
-    port_range : [1000, 1020],
-    ssh_port   : 443,
+    port_range : [10000, 20000],
+    ssh_port   : 1443,
     ssh_addr   : '0.0.0.0',
   },
 
