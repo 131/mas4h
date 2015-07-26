@@ -25,12 +25,13 @@ var Instance = new Class({
     'stop',
   ],
 
-  position:4,
   _localClients : {},
 
-  port_range : [1000, 1020],
   options : {
     key : null, //put server private key here
+    port_range : [1000, 1020],
+    ssh_port   : 443,
+    ssh_addr   : '0.0.0.0',
   },
 
   initialize:function(options){
@@ -51,7 +52,7 @@ var Instance = new Class({
     
     this.once('registered', function(){
       console.log("Registered");
-      server.listen(0, '127.0.0.1', function() {
+      server.listen(self.options.ssh_port, self.options.ssh_addr, function() {
         server.port = this.address().port;
         self.emit("registered");
       });
@@ -127,8 +128,8 @@ var Instance = new Class({
     });
 
 
-    var min   = this.port_range[0],
-        range = this.port_range[1] - min,
+    var min   = this.options.port_range[0],
+        range = this.options.port_range[1] - min,
         start = Math.floor(Math.random() * range);
     for(var f=min+start, i=0; i< range; f=min + (start + i++)%range)
       if(!contains(used, f))
