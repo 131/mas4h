@@ -23,11 +23,10 @@ var SshHost = new Class({
     var self = this;
     console.log('Client connected!');
 
-    client.destroy = function(){
-      client.end();
+    client.on('end', function(){
       if(client.localNetServer)
         client.localNetServer.close()
-    };
+    })
 
     client.once('request', this.forward_request.bind(this, client));
     client.on('authentication', this.check_authentication.bind(this, client));

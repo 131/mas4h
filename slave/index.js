@@ -82,7 +82,7 @@ var Instance = new Class({
   stop : function() {
     var self = this;
     forIn(self._localClients, function(client, client_key){
-      client.destroy();
+      client.end();
       delete self._localClients[client.device_key];
     });
   },
