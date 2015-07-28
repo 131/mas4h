@@ -10,12 +10,12 @@ var ssh2   = require('ssh2'),
 
 var SshHost = new Class({
 
-  initialize : function(server_rsa, validate_device, fetch_port, lost_device){
+  initialize : function(server_rsa, new_device, validate_device, fetch_port, lost_device){
     var server = new ssh2.Server({ privateKey: server_rsa }, this.new_client.bind(this));
+    this.new_device      = new_device || function() {};
     this.validate_device = validate_device;
     this.fetch_port      = fetch_port;
     this.lost_device     = lost_device;
-
     this.listen = server.listen.bind(server);
   },
 
@@ -23,43 +23,27 @@ var SshHost = new Class({
     var self = this;
     console.log('Client connected!');
 
-    client.on('end', function(){
-      if(client.localNetServer)
-        client.localNetServer.close()
-    })
-
     client.once('request', this.forward_request.bind(this, client));
     client.on('authentication', this.check_authentication.bind(this, client));
-
-    client.on('ready', function() {
-      console.log('Client authenticated!');
-
-      client.on('session', function(accept, reject) {
-        var session = accept();
-
-        console.log("Client come to check existing tunnel !");
-
-        session.once('exec', function(accept, reject, info) {
-          console.log('Client wants to execute: ' + info.command);
-          var stream = accept();
-          stream.stderr.write('Oh no, the dreaded errors!\n');
-          stream.write('Just kidding about the errors!\n');
-          stream.exit(0);
-          stream.end();
-        });
-      });
-    });
 
     client.on('error', function(){
         console.log("Client on error");
     });
 
-    client.on('end', function() {
-      self.lost_device(client);
-    });
+    client.on('end', function(){
+      console.log("SSH lnk disconnected, local binding was %s", client.localPort);
+      if(client.localNetServer)
+        client.localNetServer.close();
+      if(client.device_key && client.localPort) {
+        self.lost_device(client);
+      }
+    })
+
+    this.new_device(client);
   },
 
   check_authentication : function(client, ctx) {
+    client.username = ctx.username;
 
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
@@ -102,6 +86,11 @@ var SshHost = new Class({
       var out = client.forwardOut(
         info.bindAddr, info.bindPort,  //this is falsy, but we don't care
         c.remoteAddress, c.remotePort, function(err, channel){
+          if(err) {
+            //if the device is refusing lnks, maybe we should kill it ..
+            console.log("Revert fowarding as been declined", err);
+            return;
+          }
 
           channel.pipe(c);
           c.pipe(channel);
@@ -117,6 +106,9 @@ var SshHost = new Class({
     client.localNetServer = server;
     this.fetch_port(client, function(err, port) {
       console.log("Fetched remote port ", port);
+
+      client.localPort = port;
+
       if(err)
         return reject();
 

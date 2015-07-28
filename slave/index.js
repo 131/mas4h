@@ -16,6 +16,7 @@ var NS_mas4h = "mas4h";
 var Instance = new Class({
   Extends : ubkClient,
   Binds   : [
+    'new_device',
     'validate_device',
     'lost_device',
 
@@ -44,6 +45,7 @@ var Instance = new Class({
 
 
     var server = new SSH_Host(this.options.key,
+        this.new_device
         this.validate_device,
         this.fetch_port,
         this.lost_device);
@@ -85,6 +87,10 @@ var Instance = new Class({
       client.end();
       delete self._localClients[client.device_key];
     });
+  },
+
+  new_device : function(client){
+      //ras
   },
 
   validate_device : function(pubkey, chain) {
@@ -138,14 +144,6 @@ var Instance = new Class({
     throw "No available port";
   },
 
-  ping : function(device_key){
-    var self = this;
-    console.log(self._localClients);
-    if(!self._localClients[device_key]) 
-      throw "Invalid device " + device_key;
-    
-    self._localClients[device_key].tick = Date.now();
-  },
 
 });
 
