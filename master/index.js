@@ -52,7 +52,7 @@ var Server = new Class({
       delete self.slaves[client.client_key];
       forIn(self.lnks, function(lnk, lnk_id){
 
-        if(lnk.instance == client) {
+        if(lnk.instance.client_key == client.client_key) {
           console.log("Cleaning up deprecated lnk %s", lnk_id);
           delete self.lnks[lnk_id];
         }
