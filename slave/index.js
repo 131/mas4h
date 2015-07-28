@@ -45,7 +45,7 @@ var Instance = new Class({
 
 
     var server = new SSH_Host(this.options.key,
-        this.new_device
+        this.new_device,
         this.validate_device,
         this.fetch_port,
         this.lost_device);
