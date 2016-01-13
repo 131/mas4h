@@ -112,14 +112,21 @@ var Instance = new Class({
       return chain(null, localPort);
 
     var free_port = self.free_slot();
+    if(!free_port)
+      chain("No more available slots");
+
     client.localPort = free_port;
+
+      //register in localClient before remote ack (prevent free_port confusion) 
+    self._localClients[client.device_key] = client;
 
     //notify central server, then attach device key
     this.call_rpc(NS_mas4h, "new_tunnel", [client.device_key, free_port], function(err, ok){
-      if(err != null)
+      if(err != null) {
+        delete self._localClients[client.device_key];
         return chain(err);
+      }
 
-      self._localClients[client.device_key] = client;
       chain(null, free_port);
     });
   },
@@ -141,7 +148,7 @@ var Instance = new Class({
       if(!contains(used, f))
         return f;
 
-    throw "No available port";
+    return false;
   },
 
 

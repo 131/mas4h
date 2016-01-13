@@ -21,19 +21,20 @@ var SshHost = new Class({
 
   new_client : function(client) {
     var self = this;
-    console.log('Client connected!');
 
     client.once('request', this.forward_request.bind(this, client));
     client.on('authentication', this.check_authentication.bind(this, client));
 
-    client.on('error', function(){
-        console.log("Client on error");
+    client.on('error', function(err){
+        console.log("Client on error", err);
     });
 
-    client.on('end', function(){
+    client.once('end', function(){
       console.log("SSH lnk disconnected, local binding was %s", client.localPort);
       if(client.localNetServer)
-        client.localNetServer.close();
+        try {
+          client.localNetServer.close();
+        } catch(e) { } //throw an error if server is not listening
       if(client.device_key && client.localPort) {
         self.lost_device(client);
       }
@@ -50,11 +51,13 @@ var SshHost = new Class({
 
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
 
-    this.validate_device(ctx.key.data.toString('base64'), function(err, device_key) {
-      client.device_key = device_key;
-      console.log("FROM XENIOS VALIDATION IS ", err, device_key);
+    this.validate_device(ctx.key.data.toString('base64'), function(err, details) {
+      client.device_key = details.device_key;
+      client.remote     = details;
 
-      if(!device_key)
+      console.log("New client, validated device key is '%s'.", client.device_key, err );
+
+      if(!client.device_key)
         return ctx.reject(['password', 'publickey'], true);
 
       if (ctx.signature) {
@@ -115,8 +118,13 @@ var SshHost = new Class({
       accept();
 
       server.listen(port, function() {
-        console.log("Server bound at ", info.bindPort);
+        console.log("Server forwarding lnk bound at %d ", port);
       });
+      server.on('error', function(){
+       client.end();
+       //throw "Failed to listen to " + port;
+      });
+
     });
   },
 
