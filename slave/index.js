@@ -2,7 +2,7 @@ var util = require('util'),
     fs   = require('fs');
     http = require('http');
 
-var md5       = require('nyks/crypt/md5');
+var md5       = require('nyks/crypto/md5');
 var contains  = require('mout/array/contains');
 var forIn     = require('mout/object/forIn');
 var ubkClient = require('ubk/client/tcp');
