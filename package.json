@@ -6,9 +6,9 @@
   "dependencies": {
     "mout": "^0.11.0",
     "nyks": "^2.1.1",
-    "ssh2": "^0.4.10",
-    "ubk": "^1.0.2",
-    "uclass": "^2.0.1"
+    "ssh2": "^0.4.13",
+    "ubk": "^1.3.1",
+    "uclass": "^2.0.7"
   },
   "devDependencies": {},
   "scripts": {
