@@ -1,5 +1,3 @@
-var http = require('http');
-
 var keys      = require('mout/object/keys');
 var guid      = require('mout/random/guid');
 var forIn     = require('mout/object/forIn');
