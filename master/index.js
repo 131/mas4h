@@ -1,6 +1,7 @@
 var keys      = require('mout/object/keys');
 var guid      = require('mout/random/guid');
 var forIn     = require('mout/object/forIn');
+var util      = require('util');
 
 var ubkServer = require('ubk/server');
 var Class     = require('uclass');
@@ -36,12 +37,16 @@ var Server = new Class({
       var device_key = query.args[0], port = query.args[1];
       self.lnks[device_key] = { instance : slave, port : port };
       slave.respond(query, [null, port]);
+
+      self.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
     });
 
     self.register_rpc(NS_mas4h, "lost_tunnel", function(device_key, chain){
       console.log("Lost client ", device_key);
       delete self.lnks[device_key];
       chain();
+
+      self.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
     });
 
 
