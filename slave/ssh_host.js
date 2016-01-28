@@ -52,13 +52,14 @@ var SshHost = new Class({
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
 
     this.validate_device(ctx.key.data.toString('base64'), function(err, details) {
+      if(err || !details.device_key)
+        return ctx.reject(['password', 'publickey'], true);
+
       client.device_key = details.device_key;
       client.remote     = details;
 
       console.log("New client, validated device key is '%s'.", client.device_key, err );
 
-      if(!client.device_key)
-        return ctx.reject(['password', 'publickey'], true);
 
       if (ctx.signature) {
         console.log("Verify signature");

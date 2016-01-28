@@ -22,10 +22,16 @@
     "ssh",
     "ubk"
   ],
-  "author": "Francois Leurent <131.php@cloudyks.org>",
+  "author": {
+    "name": "Francois Leurent",
+    "email": "131.php@cloudyks.org"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/131/mas4h/issues"
   },
-  "homepage": "https://github.com/131/mas4h"
+  "homepage": "https://github.com/131/mas4h",
+  "readme": "ERROR: No README data found!",
+  "_id": "mas4h@1.2.0",
+  "_from": "mas4h@^1.2.0"
 }
