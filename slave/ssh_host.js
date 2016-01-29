@@ -30,7 +30,7 @@ var SshHost = new Class({
     });
 
     client.once('end', function(){
-      console.log("SSH lnk disconnected, local binding was %s", client.localPort);
+      console.log("Client %s disconnected, local binding was %s", client.device_key, client.localPort);
       if(client.localNetServer)
         try {
           client.localNetServer.close();
@@ -101,6 +101,10 @@ var SshHost = new Class({
 
           c.on("end", function(){
             console.log('Request is done');
+          });
+
+          client.once('end', function() {
+            c.destroy();
           });
       });
 
