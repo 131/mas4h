@@ -87,21 +87,20 @@ var SshHost = new Class({
       return reject();
 
     var server = net.createServer(function(c){
+
       var out = client.forwardOut(
-        info.bindAddr, info.bindPort,  //this is falsy, but we don't care
+        info.bindAddr, info.bindPort,
         c.remoteAddress, c.remotePort, function(err, channel){
           if(err) {
             //if the device is refusing lnks, maybe we should kill it ..
             console.log("Revert fowarding as been declined", err);
             return;
           }
+          channel.on("error", function(){ }); // like i care
+          c.on("error", function(){ });       // same here
 
           channel.pipe(c);
           c.pipe(channel);
-
-          c.on("end", function(){
-            console.log('Request is done');
-          });
 
           client.once('end', function() {
             c.destroy();
