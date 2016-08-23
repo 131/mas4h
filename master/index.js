@@ -5,6 +5,11 @@ var util      = require('util');
 
 var ubkServer = require('ubk/server');
 var Class     = require('uclass');
+var min         = require('mout/object/min');
+var indexOf     = require('nyks/object/indexOf');
+var map         = require('mout/object/map');
+var merge       = require('mout/object/merge');
+var forOwn      = require('mout/object/forOwn');
 
 var NS_mas4h = "mas4h";
 
@@ -14,9 +19,12 @@ var Server = new Class({
 
   Binds : ['new_link', '_expand_slave'],
 
+
     //current sessions
   lnks : {},
   slaves : {}, //for ubk clients binding
+  reservedLnks : {},
+
 
   initialize:function(options) {
     var self = this;
@@ -67,15 +75,6 @@ var Server = new Class({
 
 
 
-
-  _expand_slave : function(slave){
-    var links = this.get_lnks_stats();
-    return merge(slave.export_json(), {'slave_config' : slave.slave_config, 'links' : links[slave.client_key] });
-  },
-
-  reservedLnks : {},
-
-
   get_lnks_stats : function() {
 
     var self = this;
@@ -92,6 +91,7 @@ var Server = new Class({
 
     //pick a random target from slaves list
   new_link : function(chain){
+
 
     var self = this;
 
@@ -113,14 +113,23 @@ var Server = new Class({
     }, 2500);
 
 
+
     var lnk = {
       public_port : slave.slave_config.public_port,
-      host        : slave.slave_config.public_addr,
-      port        : 16666 //like we care
+      host : slave.slave_config.public_addr,
+      port : 16666 //like we care
     };
 
     chain(null, lnk);
   },
+
+
+
+  _expand_slave : function(slave){
+    var links = this.get_lnks_stats();
+    return merge({'slave_config' : slave.slave_config, 'links' : links[slave.client_key] }, slave.export_json());
+  },
+
 
 
 });
