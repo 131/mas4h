@@ -12,6 +12,8 @@ var NS_mas4h = "mas4h";
 var Server = new Class({
   Extends : ubkServer,
 
+  Binds : ['new_link', '_expand_slave'],
+
     //current sessions
   lnks : {},
   slaves : {}, //for ubk clients binding
@@ -61,6 +63,63 @@ var Server = new Class({
         }
       });
     });
+  },
+
+
+
+
+  _expand_slave : function(slave){
+    var links = this.get_lnks_stats();
+    return merge(slave.export_json(), {'slave_config' : slave.slave_config, 'links' : links[slave.client_key] });
+  },
+
+  reservedLnks : {},
+
+
+  get_lnks_stats : function() {
+
+    var self = this;
+
+      //send new links to less busy node
+    var links = map(self.slaves, function(v, k){ return self.reservedLnks[k] || 0 ; }) ;
+
+    forOwn(self.lnks, function(lnk){
+      links[lnk.instance.client_key] ++;
+    });
+    return links;
+  },
+
+
+    //pick a random target from slaves list
+  new_link : function(chain){
+
+    var self = this;
+
+    var links = self.get_lnks_stats();
+
+    var slave_id = indexOf(links, min(links)), slave = self.slaves[slave_id];
+    console.log("Choosing slave_id : %s over ", slave_id, links);
+
+
+    if(!slave_id)
+      return chain("No available slave");
+
+    if(!self.reservedLnks[slave_id])
+      self.reservedLnks[slave_id] = 0;
+
+    self.reservedLnks[slave_id] ++;
+    setTimeout(function(){
+      self.reservedLnks[slave_id] --;
+    }, 2500);
+
+
+    var lnk = {
+      public_port : slave.slave_config.public_port,
+      host        : slave.slave_config.public_addr,
+      port        : 16666 //like we care
+    };
+
+    chain(null, lnk);
   },
 
 
