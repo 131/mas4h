@@ -88,26 +88,31 @@ var SshHost = new Class({
 
     var server = net.createServer(function(c){
 
-      var out = client.forwardOut(
-        info.bindAddr, info.bindPort,
-        c.remoteAddress, c.remotePort, function(err, channel){
-          if(err) {
-            //if the device is refusing lnks, maybe we should kill it ..
-            console.log("Revert fowarding as been declined", err);
-            return;
-          }
-          channel.on("error", function(){ }); // like i care
-          c.on("error", function(){ });       // same here
+      try {
+        var out = client.forwardOut(
+          info.bindAddr, info.bindPort,
+          c.remoteAddress, c.remotePort, function(err, channel){
+            if(err) {
+              //if the device is refusing lnks, maybe we should kill it ..
+              console.log("Revert fowarding as been declined", err);
+              return;
+            }
+            channel.on("error", function(){ }); // like i care
+            c.on("error", function(){ });       // same here
 
-          channel.pipe(c);
-          c.pipe(channel);
+            channel.pipe(c);
+            c.pipe(channel);
 
-          client.once('end', function() {
-            c.destroy();
-          });
-      });
+            client.once('end', function() {
+              c.destroy();
+            });
+        });
+        console.log("Request forward", out);
+      } catch(err) {
+        c.end();
+        console.log("Failed to forward", err);
+      }
 
-      console.log("Request forward", out);
     });
 
     client.localNetServer = server;
