@@ -1,118 +1,84 @@
-var keys      = require('mout/object/keys');
-var guid      = require('mout/random/guid');
-var forIn     = require('mout/object/forIn');
-var util      = require('util');
+'use strict';
 
-var ubkServer = require('ubk/server');
-var Class     = require('uclass');
-var min         = require('mout/object/min');
-var indexOf     = require('nyks/object/indexOf');
-var map         = require('mout/object/map');
-var merge       = require('mout/object/merge');
-var forOwn      = require('mout/object/forOwn');
+const util        = require('util');
+const min         = require('mout/object/min');
+const indexOf     = require('nyks/object/indexOf');
+const map         = require('mout/object/map');
+const merge       = require('mout/object/merge');
+const forOwn      = require('mout/object/forOwn');
+const forIn       = require('mout/object/forIn');
 
-var NS_mas4h = "mas4h";
+const ubkServer = require('ubk/server');
 
+const NS_mas4h = "mas4h";
 
-var Server = new Class({
-  Extends : ubkServer,
-
-  Binds : ['new_link', '_expand_slave'],
-
-
-    //current sessions
-  lnks : {},
-  slaves : {}, //for ubk clients binding
-  reservedLnks : {},
-
-
-  initialize:function(options) {
-    var self = this;
-
-    Server.parent.initialize.call(this, options);
-
-    self.register_cmd(NS_mas4h, "instance_ready", function(client, query){
-      if(self.slaves[client.client_key])
+class Server extends ubkServer{
+  constructor(options){
+    super(options)
+    this.lnks         = {};
+    this.slaves       = {};
+    this.reservedLnks = {};
+    this.register_cmd(NS_mas4h, "instance_ready", (client, query) => {
+      if(this.slaves[client.client_key])
         return;
-
-      console.log("GOT READY", client);
       client.remote_port = query.args[0];
-      self.slaves[client.client_key] = client;
+      this.slaves[client.client_key] = client;
     });
 
-    self.register_rpc(NS_mas4h, "validate_device", this.validate_device);
-
-    self.register_cmd(NS_mas4h, "new_tunnel", function(slave, query){
+    this.register_cmd(NS_mas4h, "new_tunnel", (slave, query) => {
       console.log("Trying to open new lnk", slave.client_key, query);
       var device_key = query.args[0], port = query.args[1];
-      self.lnks[device_key] = { instance : slave, port : port };
-      slave.respond(query, [null, port]);
-
-      self.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
+      this.lnks[device_key] = { instance : slave, port : port };
+      slave.respond(query, port);
+      this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
     });
 
-    self.register_rpc(NS_mas4h, "lost_tunnel", function(device_key, chain){
+    this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));
+
+    this.register_rpc(NS_mas4h, "lost_tunnel", (device_key) => {
       console.log("Lost client ", device_key);
-      delete self.lnks[device_key];
-      chain();
-
-      self.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
+      delete this.lnks[device_key];
+      this.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
+      return Promise.resolve(true);
     });
-
 
     //when an instance is gone, we can assume all existings lnks are dead
-    this.on("base:unregistered_client", function(client){
-      delete self.slaves[client.client_key];
-      forIn(self.lnks, function(lnk, lnk_id){
-
+    this.on("base:unregistered_client", (client) => {
+      delete this.slaves[client.client_key];
+      forIn(this.lnks, (lnk, lnk_id) => {
         if(lnk.instance.client_key == client.client_key) {
           console.log("Cleaning up deprecated lnk %s", lnk_id);
-          delete self.lnks[lnk_id];
+          delete this.lnks[lnk_id];
         }
       });
     });
-  },
+  }
 
-
-
-  get_lnks_stats : function() {
-
-    var self = this;
-
-      //send new links to less busy node
-    var links = map(self.slaves, function(v, k){ return self.reservedLnks[k] || 0 ; }) ;
-
-    forOwn(self.lnks, function(lnk){
+  get_lnks_stats() {
+    //send new links to less busy node
+    var links = map(this.slaves, (v, k) => { return this.reservedLnks[k] || 0 ; }) ;
+    forOwn(this.lnks, function(lnk){
       links[lnk.instance.client_key] ++;
     });
     return links;
-  },
+  }
 
-
-    //pick a random target from slaves list
-  new_link : function(chain){
-
-
-    var self = this;
-
-    var links = self.get_lnks_stats();
-
-    var slave_id = indexOf(links, min(links)), slave = self.slaves[slave_id];
+  //pick a random target from slaves list
+  new_link(chain){
+    var links = this.get_lnks_stats();
+    var slave_id = indexOf(links, min(links)), slave = this.slaves[slave_id];
     console.log("Choosing slave_id : %s over ", slave_id, links);
-
 
     if(!slave_id)
       return chain("No available slave");
 
-    if(!self.reservedLnks[slave_id])
-      self.reservedLnks[slave_id] = 0;
+    if(!this.reservedLnks[slave_id])
+    this.reservedLnks[slave_id] = 0;
 
-    self.reservedLnks[slave_id] ++;
-    setTimeout(function(){
-      self.reservedLnks[slave_id] --;
+    this.reservedLnks[slave_id] ++;
+    setTimeout(() => {
+      this.reservedLnks[slave_id] --;
     }, 2500);
-
-
 
     var lnk = {
       public_port : slave.slave_config.public_port,
@@ -121,19 +87,13 @@ var Server = new Class({
     };
 
     chain(null, lnk);
-  },
+  }
 
-
-
-  _expand_slave : function(slave){
+  _expand_slave(slave){
     var links = this.get_lnks_stats();
     return merge({'slave_config' : slave.slave_config, 'links' : links[slave.client_key] }, slave.export_json());
-  },
+  }
 
-
-
-});
-
-
+}
 
 module.exports = Server;
