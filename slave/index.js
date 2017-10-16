@@ -54,14 +54,8 @@ class Instance extends ubkClient{
 
   }
 
-  connect(chain){
-    super.connect(chain, () => {
-      this.stop();
-      console.log("Will reconnect shortly");
-      setTimeout(() => {
-        this.connect(chain);
-      }, 3000);
-    });
+  connect(){
+    super.connect();
   }
 
     //we lost main server lnk, cleaning everything up
@@ -76,20 +70,20 @@ class Instance extends ubkClient{
       //ras
   }
 
-  validate_device(pubkey, chain) {
+  async validate_device(pubkey, chain) {
     //forward this to central server
-    this.call_rpc(NS_mas4h, "validate_device", [pubkey], chain);
+    var response = await this.send(NS_mas4h, "validate_device", pubkey);
+    return Promise.resolve(response)
   }
 
-  lost_device(client){
+  async lost_device(client){
     //notify central server, the remove client reference
-    this.call_rpc(NS_mas4h, "lost_tunnel", [client.device_key], () => {
-      delete this._localClients[client.device_key];
-    });
+    var response = await this.send(NS_mas4h, "lost_tunnel", client.device_key);
+    delete this._localClients[client.device_key];
+    return Promise.resolve(response)
   }
 
-
-  fetch_port(client, chain) {
+  async fetch_port(client, chain) {
     if(client.localPort)
       return chain(null, localPort);
 
@@ -98,18 +92,19 @@ class Instance extends ubkClient{
       chain("No more available slots");
 
     client.localPort = free_port;
+    
     //register in localClient before remote ack (prevent free_port confusion) 
     this._localClients[client.device_key] = client;
 
     //notify central server, then attach device key
-    this.call_rpc(NS_mas4h, "new_tunnel", [client.device_key, free_port], (err, ok) => {
-      if(err != null) {
-        delete this._localClients[client.device_key];
-        return chain(err);
-      }
+    try{
+      await this.send(NS_mas4h, "new_tunnel", [client.device_key, free_port]);
+    }catch(err){
+      delete this._localClients[client.device_key];
+      throw err;
+    }
 
-      chain(null, free_port);
-    });
+    return Promise.resolve(free_port);  
   }
 
   //return the first available slot

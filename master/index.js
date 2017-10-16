@@ -6,6 +6,7 @@ const indexOf     = require('nyks/object/indexOf');
 const map         = require('mout/object/map');
 const merge       = require('mout/object/merge');
 const forOwn      = require('mout/object/forOwn');
+const forIn       = require('mout/object/forIn');
 
 const ubkServer = require('ubk/server');
 
@@ -20,7 +21,6 @@ class Server extends ubkServer{
     this.register_cmd(NS_mas4h, "instance_ready", (client, query) => {
       if(this.slaves[client.client_key])
         return;
-      console.log("GOT READY", client);
       client.remote_port = query.args[0];
       this.slaves[client.client_key] = client;
     });
@@ -29,24 +29,23 @@ class Server extends ubkServer{
       console.log("Trying to open new lnk", slave.client_key, query);
       var device_key = query.args[0], port = query.args[1];
       this.lnks[device_key] = { instance : slave, port : port };
-      slave.respond(query, [null, port]);
-
+      slave.respond(query, port);
       this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
     });
 
     this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));
 
-    this.register_rpc(NS_mas4h, "lost_tunnel", (device_key, chain) => {
+    this.register_rpc(NS_mas4h, "lost_tunnel", (device_key) => {
       console.log("Lost client ", device_key);
       delete this.lnks[device_key];
-      chain();
       this.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
+      return Promise.resolve(true);
     });
 
     //when an instance is gone, we can assume all existings lnks are dead
     this.on("base:unregistered_client", (client) => {
       delete this.slaves[client.client_key];
-      forIn(this.lnks, function(lnk, lnk_id){
+      forIn(this.lnks, (lnk, lnk_id) => {
         if(lnk.instance.client_key == client.client_key) {
           console.log("Cleaning up deprecated lnk %s", lnk_id);
           delete this.lnks[lnk_id];
