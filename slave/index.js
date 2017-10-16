@@ -70,17 +70,17 @@ class Instance extends ubkClient{
       //ras
   }
 
-  async validate_device(pubkey, chain) {
+  async validate_device(pubkey) {
     //forward this to central server
     var response = await this.send(NS_mas4h, "validate_device", pubkey);
-    return Promise.resolve(response)
+    return response;
   }
 
   async lost_device(client){
     //notify central server, the remove client reference
     var response = await this.send(NS_mas4h, "lost_tunnel", client.device_key);
     delete this._localClients[client.device_key];
-    return Promise.resolve(response)
+    return response;
   }
 
   async fetch_port(client, chain) {
@@ -104,7 +104,7 @@ class Instance extends ubkClient{
       throw err;
     }
 
-    return Promise.resolve(free_port);  
+    return free_port;  
   }
 
   //return the first available slot
