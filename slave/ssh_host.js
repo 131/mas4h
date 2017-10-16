@@ -12,7 +12,7 @@ const utils  = ssh2.utils;
 class SshHost {
 
   constructor(server_rsa, new_device, validate_device, fetch_port, lost_device){
-    var server = new ssh2.Server({ privateKey: server_rsa }, this.new_client.bind(this));
+    var server = new ssh2.Server({hostKeys: [server_rsa]}, this.new_client.bind(this));
     this.new_device      = new_device || function() {};
     this.validate_device = validate_device;
     this.fetch_port      = fetch_port;
@@ -38,7 +38,6 @@ class SshHost {
         }
       } catch(e) { }
     })
-
     this.new_device(client);
   }
 
