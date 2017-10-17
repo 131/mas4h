@@ -7,6 +7,7 @@ const map         = require('mout/object/map');
 const merge       = require('mout/object/merge');
 const forOwn      = require('mout/object/forOwn');
 const forIn       = require('mout/object/forIn');
+const debug       = require('debug')('mas4h:master');
 
 const ubkServer = require('ubk/server');
 
@@ -26,7 +27,7 @@ class Server extends ubkServer{
     });
 
     this.register_cmd(NS_mas4h, "new_tunnel", (slave, query) => {
-      console.log("Trying to open new lnk", slave.client_key, query);
+      debug("Trying to open new lnk", slave.client_key, query);
       var device_key = query.args[0], port = query.args[1];
       this.lnks[device_key] = { instance : slave, port : port };
       slave.respond(query, port);
@@ -36,7 +37,7 @@ class Server extends ubkServer{
     this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));
 
     this.register_rpc(NS_mas4h, "lost_tunnel", (device_key) => {
-      console.log("Lost client ", device_key);
+      debug("Lost client ", device_key);
       delete this.lnks[device_key];
       this.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
       return Promise.resolve(true);
@@ -47,7 +48,7 @@ class Server extends ubkServer{
       delete this.slaves[client.client_key];
       forIn(this.lnks, (lnk, lnk_id) => {
         if(lnk.instance.client_key == client.client_key) {
-          console.log("Cleaning up deprecated lnk %s", lnk_id);
+          debug("Cleaning up deprecated lnk %s", lnk_id);
           delete this.lnks[lnk_id];
         }
       });
@@ -62,18 +63,19 @@ class Server extends ubkServer{
     });
     return links;
   }
-
+  
   //pick a random target from slaves list
-  new_link(chain){
+  new_link(){
     var links = this.get_lnks_stats();
+    debug(links)
     var slave_id = indexOf(links, min(links)), slave = this.slaves[slave_id];
-    console.log("Choosing slave_id : %s over ", slave_id, links);
+    debug("Choosing slave_id : %s over ", slave_id, links);
 
     if(!slave_id)
-      return chain("No available slave");
+      throw "No available slave";
 
     if(!this.reservedLnks[slave_id])
-    this.reservedLnks[slave_id] = 0;
+      this.reservedLnks[slave_id] = 0;
 
     this.reservedLnks[slave_id] ++;
     setTimeout(() => {
@@ -86,7 +88,7 @@ class Server extends ubkServer{
       port : 16666 //like we care
     };
 
-    chain(null, lnk);
+    return lnk;
   }
 
   _expand_slave(slave){

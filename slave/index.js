@@ -6,6 +6,7 @@ const forIn     = require('mout/object/forIn');
 const ubkClient = require('ubk/client/tcp');
 const SSH_Host  = require('./ssh_host.js');
 const utils     = require('ssh2').utils;
+const debug       = require('debug')('mas4h:slave');
 
 const NS_mas4h = "mas4h";
 
@@ -37,7 +38,7 @@ class Instance extends ubkClient{
     );
     var self = this;
     this.once('registered', () => {
-      console.log("Registered");
+      debug("Registered");
       server.listen(this.options.ssh_port, this.options.ssh_addr, function() {
         server.port = this.address().port;
         self.emit("registered");
@@ -48,7 +49,7 @@ class Instance extends ubkClient{
     this.on("registered", () => {
       if(!server.port)  //first round
         return;
-      console.log("Sending registerration ack");
+      debug("Sending registerration ack");
       this.send(NS_mas4h, "instance_ready", [server.port]);
     });
 
@@ -83,13 +84,13 @@ class Instance extends ubkClient{
     return response;
   }
 
-  async fetch_port(client, chain) {
+  async fetch_port(client) {
     if(client.localPort)
       return chain(null, localPort);
 
     var free_port = this.free_slot();
     if(!free_port)
-      chain("No more available slots");
+      throw "No more available slots";
 
     client.localPort = free_port;
     
@@ -98,7 +99,7 @@ class Instance extends ubkClient{
 
     //notify central server, then attach device key
     try{
-      await this.send(NS_mas4h, "new_tunnel", [client.device_key, free_port]);
+      await this.send(NS_mas4h, "new_tunnel", client.device_key, free_port);
     }catch(err){
       delete this._localClients[client.device_key];
       throw err;

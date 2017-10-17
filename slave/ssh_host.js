@@ -7,6 +7,7 @@ const crypto = require('crypto');
 
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
+const debug       = require('debug')('mas4h:slave');
 
 
 class SshHost {
@@ -25,11 +26,11 @@ class SshHost {
     client.on('authentication', this.check_authentication.bind(this, client));
 
     client.on('error', function(err){
-        console.log("Client on error", err);
+      debug("Client on error", err);
     });
 
     client.once('end', async () => {
-      console.log("Client %s disconnected, local binding was %s", client.device_key, client.localPort);
+      debug("Client %s disconnected, local binding was %s", client.device_key, client.localPort);
       try {
         if(client.localNetServer)  
           client.localNetServer.close();
@@ -53,9 +54,9 @@ class SshHost {
 
       client.device_key = details.device_key;
       client.remote     = details;
-      console.log("New client, validated device key is '%s'.", client.device_key);
+      debug("New client, validated device key is '%s'.", client.device_key);
       if (ctx.signature) {
-        console.log("Verify signature");
+        debug("Verify signature");
         var verifier = crypto.createVerify(ctx.sigAlgo);
         verifier.update(ctx.blob);
         if (verifier.verify(pem, ctx.signature, 'binary'))
@@ -68,7 +69,7 @@ class SshHost {
         ctx.accept();
       }
     }catch(err){
-      console.log(err)
+      debug(err)
       return ctx.reject(['password', 'publickey'], true);
     }
   }
@@ -87,7 +88,7 @@ class SshHost {
           c.remoteAddress, c.remotePort, function(err, channel){
             if(err) {
               //if the device is refusing lnks, maybe we should kill it ..
-              console.log("Revert fowarding as been declined", err);
+              debug("Revert fowarding as been declined", err);
               return;
             }
             channel.on("error", function(){ }); // like i care
@@ -100,21 +101,21 @@ class SshHost {
               c.destroy();
             });
         });
-        console.log("Request forward", out);
+        debug("Request forward", out);
       } catch(err) {
         c.end();
-        console.log("Failed to forward", err);
+        debug("Failed to forward", err);
       }
     });
     
     client.localNetServer = server;
     try{
       var port = await this.fetch_port(client);
-      console.log("Fetched remote port ", port);
+      debug("Fetched remote port ", port);
       client.localPort = port;
       accept();
       server.listen(port, function() {
-        console.log("Server forwarding lnk bound at %d ", port);
+        debug("Server forwarding lnk bound at %d ", port);
       });
       server.on('error', function(){
        client.end();
