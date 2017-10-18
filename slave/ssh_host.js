@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
-
+const defer = require('nyks/promise/defer')
 
 class SshHost {
 
@@ -24,21 +24,7 @@ class SshHost {
   new_client(client) {
     client.on('authentication', this.check_authentication.bind(this, client));
     client.once('request', this.forward_request.bind(this, client));
-
-    client.on('error', function(err){
-      debug("Client on error", err);
-    });
-
-    client.once('end', async () => {
-      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.localPort);
-      try {
-        if(client.localNetServer)  
-          client.localNetServer.close();
-        if(client.details && client.details.client_key && client.details.localPort) {
-          await this.lost_device(client);
-        }
-      } catch(e) { }
-    })
+    client.on('error', (err) => { debug("Client on error", err); });
     this.new_device(client);
   }
 
@@ -73,11 +59,10 @@ class SshHost {
   }
 
   async forward_request(client, accept, reject, name, info){
-    
     if(name != "tcpip-forward")
       return reject();
         //already listening
-    if(client.localNetServer)
+    if(client.details.localPort)
       return reject(); 
 
     var server = net.createServer(function(c){
@@ -106,24 +91,34 @@ class SshHost {
         debug("Failed to forward", err);
       }
     });
-    
-    client.localNetServer = server;
-    try{
+
+    try{      
       var port = await this.fetch_port(client);
       debug("Fetched remote port ", port);
       client.details.localPort = port;
+      var defered = defer()
+      server.listen(port, defered.resolve.bind(null))
+      await defered;
+      debug("Server forwarding lnk bound at %d ", port);
       accept();
-      server.listen(port, function() {
-        debug("Server forwarding lnk bound at %d ", port);
-      });
-      server.on('error', function(){
-       client.end();
-       //throw "Failed to listen to " + port;
-      });
-    }catch(err){
+    } catch (err){
+      console.log(err);
       reject();
-    }  
+    }
+    
+    client.once('end', async () => {
+      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.localPort);
+      try {
+        server.close();
+        await this.lost_device(client);
+      } catch(e) { }
+    })
+
+    server.on('error', function(){
+      client.end();
+    });
   }
+
 };
 
 module.exports = SshHost; 

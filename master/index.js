@@ -19,11 +19,14 @@ class Server extends ubkServer{
     this.lnks         = {};
     this.slaves       = {};
     this.reservedLnks = {};
-    this.register_rpc(NS_mas4h, "instance_ready", (slave_key, remote_port) => {
+    this.register_rpc(NS_mas4h, "instance_ready", (slave_key, remote_port, client_list) => {
       if(this.slaves[slave_key])
         return Promise.reject('instance already registred and ready');
       this.slaves[slave_key] = this._clientsList[slave_key];
       this.slaves[slave_key].remote_port = remote_port;
+      client_list.forEach( subClient => {
+        this.lnks[subClient.client_key] = { instance : this.slaves[slave_key] , port : subClient.port};
+      })
       return Promise.resolve(true);
     });
 

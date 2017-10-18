@@ -49,21 +49,13 @@ class Instance extends ubkClient{
     this.on("registered", () => {
       if(!server.port)  //first round
         return;
-      debug("Sending registerration ack" , this._localClients);
-      this.send(NS_mas4h, "instance_ready", this.client_key, server.port);
+      debug("Sending registerration ack" );
+      this.send(NS_mas4h, "instance_ready", this.client_key, server.port , Object.values(this._localClients));
     });
   }
 
   connect(){
     super.connect();
-  }
-
-    //we lost main server lnk, cleaning everything up
-  stop() {
-    forIn(this._localClients, (client, client_key) => {
-      client.end();
-      delete this._localClients[client.details.client_key];
-    });
   }
 
   new_device(client){
@@ -92,11 +84,11 @@ class Instance extends ubkClient{
       throw "No more available slots";
 
     //register in localClient before remote ack (prevent free_port confusion) 
-    this._localClients[client.details.client_key] = client;
+    this._localClients[client.details.client_key] = client.details;
 
     //notify central server, then attach device key
     try{
-      await this.send(NS_mas4h, "new_tunnel", client.details.client_key, free_port, this.client_key);//to move
+      await this.send(NS_mas4h, "new_tunnel", client.details.client_key, free_port, this.client_key);
     }catch(err){
       delete this._localClients[client.details.client_key];
       throw err;
