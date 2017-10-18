@@ -22,19 +22,19 @@ class SshHost {
   }
 
   new_client(client) {
-    client.once('request', this.forward_request.bind(this, client));
     client.on('authentication', this.check_authentication.bind(this, client));
+    client.once('request', this.forward_request.bind(this, client));
 
     client.on('error', function(err){
       debug("Client on error", err);
     });
 
     client.once('end', async () => {
-      debug("Client %s disconnected, local binding was %s", client.device_key, client.localPort);
+      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.localPort);
       try {
         if(client.localNetServer)  
           client.localNetServer.close();
-        if(client.device_key && client.localPort) {
+        if(client.details && client.details.client_key && client.details.localPort) {
           await this.lost_device(client);
         }
       } catch(e) { }
@@ -49,12 +49,10 @@ class SshHost {
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
     try{
       var details = await this.validate_device(ctx.key.data.toString('base64'));
-      if(!details.device_key)
-        throw 'no device_key';
-
-      client.device_key = details.device_key;
-      client.remote     = details;
-      debug("New client, validated device key is '%s'.", client.device_key);
+      if(!details.client_key)
+        throw 'no client_key';
+      client.details          = Object.assign({}, details) || {};
+      debug("New client, validated device key is '%s'.", client.details.client_key);
       if (ctx.signature) {
         debug("Verify signature");
         var verifier = crypto.createVerify(ctx.sigAlgo);
@@ -80,7 +78,8 @@ class SshHost {
       return reject();
         //already listening
     if(client.localNetServer)
-      return reject();
+      return reject(); 
+
     var server = net.createServer(function(c){
       try {
         var out = client.forwardOut(
@@ -112,7 +111,7 @@ class SshHost {
     try{
       var port = await this.fetch_port(client);
       debug("Fetched remote port ", port);
-      client.localPort = port;
+      client.details.localPort = port;
       accept();
       server.listen(port, function() {
         debug("Server forwarding lnk bound at %d ", port);

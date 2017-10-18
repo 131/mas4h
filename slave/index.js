@@ -62,7 +62,7 @@ class Instance extends ubkClient{
   stop() {
     forIn(this._localClients, (client, client_key) => {
       client.end();
-      delete this._localClients[client.device_key];
+      delete this._localClients[client.details.client_key];
     });
   }
 
@@ -78,29 +78,27 @@ class Instance extends ubkClient{
 
   async lost_device(client){
     //notify central server, the remove client reference
-    var response = await this.send(NS_mas4h, "lost_tunnel", client.device_key);
-    delete this._localClients[client.device_key];
+    var response = await this.send(NS_mas4h, "lost_tunnel", client.details.client_key);
+    delete this._localClients[client.details.client_key];
     return response;
   }
 
   async fetch_port(client) {
-    if(client.localPort)
-      return chain(null, localPort);
+    if(client.details.localPort)
+      throw "alrady connected";
 
     var free_port = this.free_slot();
     if(!free_port)
       throw "No more available slots";
 
-    client.localPort = free_port;
-    
     //register in localClient before remote ack (prevent free_port confusion) 
-    this._localClients[client.device_key] = client;
+    this._localClients[client.details.client_key] = client;
 
     //notify central server, then attach device key
     try{
-      await this.send(NS_mas4h, "new_tunnel", client.device_key, free_port, this.client_key);
+      await this.send(NS_mas4h, "new_tunnel", client.details.client_key, free_port, this.client_key);//to move
     }catch(err){
-      delete this._localClients[client.device_key];
+      delete this._localClients[client.details.client_key];
       throw err;
     }
 
@@ -112,7 +110,7 @@ class Instance extends ubkClient{
     var used = [];
 
     forIn(this._localClients, function(client){
-      used.push(client.localPort);
+      used.push(client.details.localPort);
     });
     var min   = this.options.port_range[0],
         range = this.options.port_range[1] - min,
