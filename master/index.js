@@ -19,19 +19,19 @@ class Server extends ubkServer{
     this.lnks         = {};
     this.slaves       = {};
     this.reservedLnks = {};
-    this.register_cmd(NS_mas4h, "instance_ready", (client, query) => {
-      if(this.slaves[client.client_key])
-        return;
-      client.remote_port = query.args[0];
-      this.slaves[client.client_key] = client;
+    this.register_rpc(NS_mas4h, "instance_ready", (slave_key, remote_port) => {
+      if(this.slaves[slave_key])
+        return Promise.reject('instance already registred and ready');
+      this.slaves[slave_key] = this._clientsList[slave_key];
+      this.slaves[slave_key].remote_port = remote_port;
+      return Promise.resolve(true);
     });
 
-    this.register_cmd(NS_mas4h, "new_tunnel", (slave, query) => {
-      debug("Trying to open new lnk", slave.client_key, query);
-      var device_key = query.args[0], port = query.args[1];
-      this.lnks[device_key] = { instance : slave, port : port };
-      slave.respond(query, port);
+    this.register_rpc(NS_mas4h, "new_tunnel", (device_key, port, slave_key) => {
+      debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${device_key} on port:${port}`);
+      this.lnks[device_key] = { instance : this.slaves[slave_key], port : port };
       this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
+      return Promise.resolve(port);
     });
 
     this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));

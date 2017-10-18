@@ -49,10 +49,9 @@ class Instance extends ubkClient{
     this.on("registered", () => {
       if(!server.port)  //first round
         return;
-      debug("Sending registerration ack");
-      this.send(NS_mas4h, "instance_ready", [server.port]);
+      debug("Sending registerration ack" , this._localClients);
+      this.send(NS_mas4h, "instance_ready", this.client_key, server.port);
     });
-
   }
 
   connect(){
@@ -99,7 +98,7 @@ class Instance extends ubkClient{
 
     //notify central server, then attach device key
     try{
-      await this.send(NS_mas4h, "new_tunnel", client.device_key, free_port);
+      await this.send(NS_mas4h, "new_tunnel", client.device_key, free_port, this.client_key);
     }catch(err){
       delete this._localClients[client.device_key];
       throw err;
