@@ -24,17 +24,17 @@ class Server extends ubkServer{
         return Promise.reject('instance already registred and ready');
       this.slaves[slave_key] = this._clientsList[slave_key];
       this.slaves[slave_key].remote_port = remote_port;
-      client_list.forEach( subClient => {
-        this.lnks[subClient.client_key] = { instance : this.slaves[slave_key] , port : subClient.port};
+      client_list.forEach( client_detail => {
+        this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
       })
       return Promise.resolve(true);
     });
 
-    this.register_rpc(NS_mas4h, "new_tunnel", (device_key, port, slave_key) => {
-      debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${device_key} on port:${port}`);
-      this.lnks[device_key] = { instance : this.slaves[slave_key], port : port };
-      this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), device_key);
-      return Promise.resolve(port);
+    this.register_rpc(NS_mas4h, "new_tunnel", (client_detail, slave_key) => {
+      debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${client_detail.client_key} on port:${client_detail.port}`);
+      this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
+      this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), client_detail.client_key);
+      return Promise.resolve(client_detail.port);
     });
 
     this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));

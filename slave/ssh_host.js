@@ -34,10 +34,10 @@ class SshHost {
       return ctx.reject(['password', 'publickey'], true);
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
     try{
-      var details = await this.validate_device(ctx.key.data.toString('base64'));
-      if(!details.client_key)
+      var validated_devices = await this.validate_device(ctx.key.data.toString('base64'));
+      if(!validated_devices.client_key)
         throw 'no client_key';
-      client.details          = Object.assign({}, details) || {};
+      client.details          = Object.assign({client_key : validated_devices.client_key}, {validated_devices}) || {};
       debug("New client, validated device key is '%s'.", client.details.client_key);
       if (ctx.signature) {
         debug("Verify signature");
@@ -62,7 +62,7 @@ class SshHost {
     if(name != "tcpip-forward")
       return reject();
         //already listening
-    if(client.details.localPort)
+    if(client.details.port)
       return reject(); 
 
     var server = net.createServer(function(c){
@@ -95,7 +95,6 @@ class SshHost {
     try{      
       var port = await this.fetch_port(client);
       debug("Fetched remote port ", port);
-      client.details.localPort = port;
       var defered = defer()
       server.listen(port, defered.resolve.bind(null))
       await defered;
@@ -107,10 +106,10 @@ class SshHost {
     }
     
     client.once('end', async () => {
-      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.localPort);
+      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.port);
       try {
-        server.close();
         await this.lost_device(client);
+        server.close();
       } catch(e) { }
     })
 

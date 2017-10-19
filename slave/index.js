@@ -76,7 +76,7 @@ class Instance extends ubkClient{
   }
 
   async fetch_port(client) {
-    if(client.details.localPort)
+    if(client.details.port)
       throw "alrady connected";
 
     var free_port = this.free_slot();
@@ -85,10 +85,11 @@ class Instance extends ubkClient{
 
     //register in localClient before remote ack (prevent free_port confusion) 
     this._localClients[client.details.client_key] = client.details;
+    client.details.port = free_port;
 
     //notify central server, then attach device key
     try{
-      await this.send(NS_mas4h, "new_tunnel", client.details.client_key, free_port, this.client_key);
+      await this.send(NS_mas4h, "new_tunnel", client.details, this.client_key);
     }catch(err){
       delete this._localClients[client.details.client_key];
       throw err;
@@ -102,7 +103,7 @@ class Instance extends ubkClient{
     var used = [];
 
     forIn(this._localClients, function(client){
-      used.push(client.details.localPort);
+      used.push(client.details.port);
     });
     var min   = this.options.port_range[0],
         range = this.options.port_range[1] - min,
