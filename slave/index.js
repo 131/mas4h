@@ -101,9 +101,9 @@ class Instance extends ubkClient{
   //return the first available slot
   free_slot(){
     var used = [];
-
     forIn(this._localClients, function(client){
-      used.push(client.details.port);
+      if(client.details)
+        used.push(client.details.port);
     });
     var min   = this.options.port_range[0],
         range = this.options.port_range[1] - min,
