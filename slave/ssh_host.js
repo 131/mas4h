@@ -10,59 +10,67 @@ const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
 
 class SshHost {
-
-  constructor(server_rsa, new_device, validate_device, new_client, lost_device){
-    var server = new ssh2.Server({hostKeys: [server_rsa]}, this._ssh2_client.bind(this));
-    this.new_device      = new_device || function() {};
-    this.validate_device = validate_device;
-    this.lost_device     = lost_device;
-    this.new_client      = new_client;
-    this.listen = server.listen.bind(server);
+  constructor(server_rsa, new_client) {
+    this.server = new ssh2.Server({hostKeys: [server_rsa]}, new_client);
   }
 
-  _ssh2_client(client) {
-    client.on('authentication', this.check_authentication.bind(this, client));
-    client.once('request', this.forward_request.bind(this, client));
-    client.on('error', (err) => { debug("Client on error", err); });
-    this.new_device(client);
+  listen(port, addr) {
+    return new Promise((resolve) => {
+      this.server.listen(port, addr, function(){
+        resolve(this.address().port);
+      });
+    });
   }
 
-  async check_authentication(client, ctx) {
-    client.username = ctx.username;
+
+  check_authentication(client, validate){
+    var defered = defer();
+    setTimeout(defered.reject, 1000, "Timeout");
+    client.on('authentication', this._check_authentication.bind(null, validate, defered));
+    return defered;
+  }
+
+
+  async perpare_forward_server() {
+    var defered = defer();
+    setTimeout(defered.reject, 1000, "Timeout");
+    client.once('request', this._prepare_forward_server.bind(null, client, defered));
+    return defered;
+  }
+
+  async _check_authentication(defered, validate, ctx) {
+
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
+
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
-    try{
-      var validated_devices = await this.validate_device(ctx.key.data.toString('base64'));
-      if(!validated_devices.client_key)
-        throw 'no client_key';
-      client.details          = Object.assign({client_key : validated_devices.client_key}, {validated_devices}) || {};
-      debug("New client, validated device key is '%s'.", client.details.client_key);
+
+    await validate(pem);
+
+    try {
       if (ctx.signature) {
         debug("Verify signature");
         var verifier = crypto.createVerify(ctx.sigAlgo);
         verifier.update(ctx.blob);
-        if (verifier.verify(pem, ctx.signature, 'binary'))
+        if (verifier.verify(pem, ctx.signature, 'binary')) {
           ctx.accept();
-        else
+          defered.accept();
+        } else
           ctx.reject(['password', 'publickey'], true);
       } else {
         // if no signature present, that means the client is just checking
         // the validity of the given public key
         ctx.accept();
       }
-    }catch(err){
+    } catch(err) {
       debug(err)
       return ctx.reject(['password', 'publickey'], true);
     }
   }
 
-  async forward_request(client, accept, reject, name, info){
+   _prepare_forward_server(client, defered, accept, reject, name, info){
     if(name != "tcpip-forward")
       return reject();
-        //already listening
-    if(client.details.port)
-      return reject(); 
 
     var server = net.createServer(function(c){
       try {
@@ -91,29 +99,19 @@ class SshHost {
       }
     });
 
-    try {
-      var port = await new Promise(function(resolve){
-        server.listen(0, () => {
-          resolve(server.address().port);
-        })
-      });
-      debug("Announce loopback port ", port);
-      await this.new_client(client, port);
-      debug("Server forwarding lnk bound at %d ", port);
-      accept();
-    } catch (err){
-      console.log(err);
-      reject();
-    }
-    
+
     client.once('end', async () => {
-      debug("Client %s disconnected, local binding was %s", client.details.client_key, client.details.port);
       try {
-        await this.lost_device(client);
         server.close();
       } catch(e) { }
     })
 
+    server.listen(0, () => {
+      debug("Server forwarding lnk bound at %d ", client.details.port);
+      defered.resolve(server.address().port);
+      accept();
+    })
+    
     server.on('error', function(){
       client.end();
     });
