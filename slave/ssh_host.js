@@ -8,20 +8,19 @@ const crypto = require('crypto');
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
-const defer = require('nyks/promise/defer')
 
 class SshHost {
 
-  constructor(server_rsa, new_device, validate_device, fetch_port, lost_device){
-    var server = new ssh2.Server({hostKeys: [server_rsa]}, this.new_client.bind(this));
+  constructor(server_rsa, new_device, validate_device, new_client, lost_device){
+    var server = new ssh2.Server({hostKeys: [server_rsa]}, this._ssh2_client.bind(this));
     this.new_device      = new_device || function() {};
     this.validate_device = validate_device;
-    this.fetch_port      = fetch_port;
     this.lost_device     = lost_device;
+    this.new_client      = new_client;
     this.listen = server.listen.bind(server);
   }
 
-  new_client(client) {
+  _ssh2_client(client) {
     client.on('authentication', this.check_authentication.bind(this, client));
     client.once('request', this.forward_request.bind(this, client));
     client.on('error', (err) => { debug("Client on error", err); });
@@ -92,12 +91,14 @@ class SshHost {
       }
     });
 
-    try{      
-      var port = await this.fetch_port(client);
-      debug("Fetched remote port ", port);
-      var defered = defer()
-      server.listen(port, defered.resolve.bind(null))
-      await defered;
+    try {
+      var port = await new Promise(function(resolve){
+        server.listen(0, () => {
+          resolve(server.address().port);
+        })
+      });
+      debug("Announce loopback port ", port);
+      await this.new_client(client, port);
       debug("Server forwarding lnk bound at %d ", port);
       accept();
     } catch (err){

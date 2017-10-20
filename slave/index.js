@@ -14,7 +14,6 @@ class Instance extends ubkClient{
   constructor(options){
     options = Object.assign({
       key : null, //put server private key here
-      port_range : [10000, 20000],
       ssh_port   : 1443,
       ssh_addr   : '0.0.0.0',
     }, options)
@@ -27,13 +26,13 @@ class Instance extends ubkClient{
     
     this.new_device      = this.new_device.bind(this);
     this.validate_device = this.validate_device.bind(this);
-    this.fetch_port      = this.fetch_port.bind(this);
+    this.new_client      = this.new_client.bind(this);
     this.lost_device     = this.lost_device.bind(this);
     
     var server = new SSH_Host(this.options.key,
       this.new_device,
       this.validate_device,
-      this.fetch_port,
+      this.new_client,
       this.lost_device
     );
     var self = this;
@@ -75,17 +74,11 @@ class Instance extends ubkClient{
     return response;
   }
 
-  async fetch_port(client) {
-    if(client.details.port)
-      throw "alrady connected";
+  async new_client(client, port) {
 
-    var free_port = this.free_slot();
-    if(!free_port)
-      throw "No more available slots";
-
+    client.details.port = port;
     //register in localClient before remote ack (prevent free_port confusion) 
     this._localClients[client.details.client_key] = client.details;
-    client.details.port = free_port;
 
     //notify central server, then attach device key
     try{
@@ -94,25 +87,6 @@ class Instance extends ubkClient{
       delete this._localClients[client.details.client_key];
       throw err;
     }
-
-    return free_port;  
-  }
-
-  //return the first available slot
-  free_slot(){
-    var used = [];
-    forIn(this._localClients, function(client){
-      if(client.details)
-        used.push(client.details.port);
-    });
-    var min   = this.options.port_range[0],
-        range = this.options.port_range[1] - min,
-        start = Math.floor(Math.random() * range);
-    for(var f=min+start, i=0; i< range; f=min + (start + i++)%range)
-      if(!contains(used, f))
-        return f;
-
-    return false;
   }
 }
 
