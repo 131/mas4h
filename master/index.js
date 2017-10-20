@@ -30,14 +30,14 @@ class Server extends ubkServer{
       return Promise.resolve(true);
     });
 
-    this.register_rpc(NS_mas4h, "new_tunnel", (client_detail, slave_key) => {
+    this.register_rpc(NS_mas4h, "new_tunnel", (slave_key, client_detail) => {
       debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${client_detail.client_key} on port:${client_detail.port}`);
       this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
       this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), client_detail.client_key);
       return Promise.resolve(client_detail.port);
     });
 
-    this.register_rpc(NS_mas4h, "validate_device", this.validate_device.bind(this));
+    this.register_rpc(NS_mas4h, "validate_client", this.validate_device.bind(this));
 
     this.register_rpc(NS_mas4h, "lost_tunnel", (device_key) => {
       debug("Lost client ", device_key);

@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
+const defer   = require('nyks/promise/defer');
 
 class SshHost {
   constructor(server_rsa, new_client) {
@@ -25,27 +26,27 @@ class SshHost {
 
   check_authentication(client, validate){
     var defered = defer();
-    setTimeout(defered.reject, 1000, "Timeout");
+    setTimeout(defered.reject, 2000, "Timeout");
     client.on('authentication', this._check_authentication.bind(null, validate, defered));
     return defered;
   }
 
 
-  async perpare_forward_server() {
+  async prepare_forward_server(client) {
     var defered = defer();
-    setTimeout(defered.reject, 1000, "Timeout");
+    setTimeout(defered.reject, 2000, "Timeout");
     client.once('request', this._prepare_forward_server.bind(null, client, defered));
     return defered;
   }
 
-  async _check_authentication(defered, validate, ctx) {
+  async _check_authentication(validate, defered, ctx) {
 
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
     var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
 
-    await validate(pem);
+    await validate(ctx.key.data.toString('base64'));
 
     try {
       if (ctx.signature) {
@@ -54,7 +55,7 @@ class SshHost {
         verifier.update(ctx.blob);
         if (verifier.verify(pem, ctx.signature, 'binary')) {
           ctx.accept();
-          defered.accept();
+          defered.resolve();
         } else
           ctx.reject(['password', 'publickey'], true);
       } else {
@@ -107,7 +108,7 @@ class SshHost {
     })
 
     server.listen(0, () => {
-      debug("Server forwarding lnk bound at %d ", client.details.port);
+      debug("Server forwarding lnk bound at %d ", server.address().port);
       defered.resolve(server.address().port);
       accept();
     })

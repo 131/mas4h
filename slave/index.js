@@ -30,29 +30,33 @@ class Instance extends ubkClient {
 
     var server = new SSH_Host(this.options.key, async(client) => {
 
-      var details;
-      await server.check_authentication( async(pubkey) => {
-        details = await this.validate_device(pubkey);
-        if(!details.client_key)
-          throw 'no client_key';
+      try {
+        var details;
+        await server.check_authentication(client, async(pubkey) => {
+          details = await this.validate_client(pubkey);
+          if(!details.client_key)
+            throw 'no client_key';
 
-        debug("New client, validated device key is '%s'.", details.client_key);
-  
-        details  = Object.assign({client_key : details.client_key}, {validated_devices : details}) || {};
-      });
+          debug("New client, validated device key is '%s'.", details.client_key);
+    
+          details  = Object.assign({client_key : details.client_key}, {validated_devices : details}) || {};
+        });
 
-      details.port = await server.prepare_forward_server(client);
+        details.port = await server.prepare_forward_server(client);
 
-      client.on('end', this.lost_device.bind(this, client, details));
-
-      await this.new_client(client, details);
+        await this.new_client(client, details);
+        client.on('end', this.lost_client.bind(this, client, details));
+      } catch(err) {
+        debug("New link failure", err);
+        client.end();
+      }
     });
 
     var port = await server.listen(this.options.ssh_port, this.options.ssh_addr);
 
     this.on("registered", () => {
       debug("Sending registerration ack" );
-      this.send(NS_mas4h, "instance_ready", this.client_key, port, this._localClients);
+      this.send(NS_mas4h, "instance_ready", this.client_key, port, Object.values(this._localClients));
     });
 
     super.connect();
@@ -81,7 +85,7 @@ class Instance extends ubkClient {
 
     //notify central server, then attach client key
     try{
-      await this.send(NS_mas4h, "new_tunnel", this.client_key, client.details);
+      await this.send(NS_mas4h, "new_tunnel", this.client_key, details);
     }catch(err){
       delete this._localClients[client.client_key];
       throw err;
