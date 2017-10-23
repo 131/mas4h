@@ -26,7 +26,7 @@ class SshHost {
 
   check_authentication(client, validate){
     var defered = defer();
-    setTimeout(defered.reject, 2000, "Timeout");
+    setTimeout(defered.reject, 5 * 1000, "Timeout");
     client.on('authentication', this._check_authentication.bind(null, validate, defered));
     return defered;
   }
@@ -34,7 +34,7 @@ class SshHost {
 
   async prepare_forward_server(client) {
     var defered = defer();
-    setTimeout(defered.reject, 2000, "Timeout");
+    setTimeout(defered.reject, 5 * 1000, "Timeout");
     client.once('request', this._prepare_forward_server.bind(null, client, defered));
     return defered;
   }
@@ -69,7 +69,7 @@ class SshHost {
     }
   }
 
-   _prepare_forward_server(client, defered, accept, reject, name, info){
+   _prepare_forward_server(client, defered, accept, reject, name, info) {
     if(name != "tcpip-forward")
       return reject();
 
@@ -101,21 +101,20 @@ class SshHost {
     });
 
 
-    client.once('end', async () => {
-      try {
-        server.close();
-      } catch(e) { }
-    })
-
     server.listen(0, () => {
       debug("Server forwarding lnk bound at %d ", server.address().port);
       defered.resolve(server.address().port);
       accept();
     })
     
-    server.on('error', function(){
+    server.once('error', () => {
       client.end();
     });
+
+    client.once('end', () => {
+      server.close();
+    })
+
   }
 
 };
