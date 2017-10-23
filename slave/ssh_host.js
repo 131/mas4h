@@ -11,8 +11,8 @@ const debug       = require('debug')('mas4h:slave');
 const defer   = require('nyks/promise/defer');
 
 class SshHost {
-  constructor(server_rsa, new_client) {
-    this.server = new ssh2.Server({hostKeys: [server_rsa]}, new_client);
+  constructor(server_rsa, new_client) {   
+    this.server = new ssh2.Server({ privateKey: server_rsa }, new_client);
   }
 
   listen(port, addr) {
