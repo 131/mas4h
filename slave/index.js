@@ -88,7 +88,7 @@ class Instance extends ubkClient {
     try{
       await this.send(NS_mas4h, "new_tunnel", this.client_key, details);
     }catch(err){
-      delete this._localClients[client.client_key];
+      delete this._localClients[details.client_key];
       throw err;
     }
   }
