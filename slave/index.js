@@ -29,7 +29,8 @@ class Instance extends ubkClient {
   async run() {
 
     var server = new SSH_Host(this.options.key, async(client) => {
-
+      client.on('error', (err) => {debug('client error', err)});
+    
       try {
         var details;
         await server.check_authentication(client, async(pubkey) => {
