@@ -75,7 +75,7 @@ class Instance extends ubkClient {
 
     //notify central server, the remove client reference
     var response = await this.send(NS_mas4h, "lost_tunnel", details.client_key);
-    delete this._localClients[client.client_key];
+    delete this._localClients[details.client_key];
     return response;
   }
 
