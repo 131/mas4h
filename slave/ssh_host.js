@@ -12,7 +12,7 @@ const defer   = require('nyks/promise/defer');
 
 class SshHost {
   constructor(server_rsa, new_client) {   
-    this.server = new ssh2.Server({ privateKey: server_rsa }, new_client);
+    this.server = new ssh2.Server({hostKeys: [server_rsa]}, new_client);    
     this.server.on('error', (err) => {debug('server error', err)});
   }
 
