@@ -82,7 +82,7 @@ class Instance extends ubkClient {
   async new_client(client, details) {
 
     //register in localClient before remote ack (prevent free_port confusion) 
-    this._localClients[client.client_key] = details;
+    this._localClients[details.client_key] = details;
 
     //notify central server, then attach client key
     try{
