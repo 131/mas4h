@@ -3,6 +3,11 @@
 [mas4sh](https://github.com/131/mas4sh) is a scalable server infrastructure to connect (a lot of) remote linux capable devices to a central server (& boucing clusters) using reverse SSH tunnels. The ssh2 crazy magic is powered by the excellent [ssh2 library](https://github.com/mscdex/ssh2) by Brian White.
 
 
+[![Build Status](https://travis-ci.org/131/mas4h.svg?branch=master)](https://travis-ci.org/131/mas4h)
+[![Version](https://img.shields.io/npm/v/mas4h.svg)](https://www.npmjs.com/package/mas4h)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
+
+
 # mas4h master & slaves
 
 mas4h master act as a dispatcher.
