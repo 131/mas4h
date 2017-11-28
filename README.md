@@ -1,6 +1,6 @@
 # mas4h : Mass SSH revert bouncer
 
-[mas4sh](https://github.com/131/mas4sh) is a scalable server infrastructure to connect (a lot of) remote linux capable devices to a central server (& boucing clusters) using reverse SSH tunnels. The ssh2 crazy magic is powered by the excellent [ssh2 library](https://github.com/mscdex/ssh2) by Brian White.
+[mas4sh](https://github.com/131/mas4sh) is a scalable server infrastructure to connect (a lot of) remote linux (i.e. SSH capable) devices to a central server (& boucing clusters) using reverse SSH tunnels. The ssh2 crazy magic is powered by the excellent [ssh2 library](https://github.com/mscdex/ssh2) by Brian White. mas4h (& dependencies) requires ES7 capabilities.
 
 
 [![Build Status](https://travis-ci.org/131/mas4h.svg?branch=master)](https://travis-ci.org/131/mas4h)
@@ -32,8 +32,8 @@ On the master side, you'll have to implement how to lookup devices RSA public ke
 *  chain : function(err, device_details)
 *     device_details : {device_key : SOMEUNIQUESTRING [, whatever you want ]}
 */
-validate_device : function(pubkey, chain){
-  //answer to chain
+async validate_device(pubkey) {
+  return {}; //whatever you want but at least a "client_key" that will be used as unique ID for the client (i.e. pubkey signature)
 }
 ```
 Per design, positive responses might be cached by mas4h slaves.
@@ -51,9 +51,6 @@ Keep it as simple as you can ! Our production implementation include a local (lo
 On slave, the SSH server is not bound to any bash or sh. It's just a TCP service that can run with no privilege.
 
 
-# Restarting master
-If the master service instance crash or restart, all currently bounded links (to all slaves) are dropped. Slaves reconnect automaticly to the master as soon as possible.
-
 
 # Restarting a slave
 If a slave instance crash or restart, all bounded client links of this slave are dropped. Slave reconnect as soon as possible to the master and accept incoming client links.
@@ -65,5 +62,7 @@ Note : By the less busy cluster member policy, all dropped links are more enclin
 
 # Credits
 * [131](https://github.com/131)
+* [idjem](https://github.com/idjem)
+
 
 
