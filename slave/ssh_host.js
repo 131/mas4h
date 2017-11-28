@@ -1,7 +1,5 @@
 'use strict';
 
-const fs     = require('fs');
-const util   = require('util');
 const net    = require('net');
 const crypto = require('crypto');
 
@@ -11,21 +9,21 @@ const debug       = require('debug')('mas4h:slave');
 const defer   = require('nyks/promise/defer');
 
 class SshHost {
-  constructor(server_rsa, new_client) {   
-    this.server = new ssh2.Server({hostKeys: [server_rsa]}, new_client);    
-    this.server.on('error', (err) => {debug('server error', err)});
+  constructor(server_rsa, new_client) {
+    this.server = new ssh2.Server({hostKeys : [server_rsa]}, new_client);
+    this.server.on('error', (err) => debug('server error', err));
   }
 
   listen(port, addr) {
     return new Promise((resolve) => {
-      this.server.listen(port, addr, function(){
+      this.server.listen(port, addr, function() {
         resolve(this.address().port);
       });
     });
   }
 
 
-  check_authentication(client, validate){
+  check_authentication(client, validate) {
     var defered = defer();
     setTimeout(defered.reject, 5 * 1000, "Timeout");
     client.on('authentication', this._check_authentication.bind(null, validate, defered));
@@ -45,7 +43,7 @@ class SshHost {
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
-    var pem = utils.genPublicKey({public:ctx.key.data, type:'rsa'}).publicOrig;
+    var pem = utils.genPublicKey({public : ctx.key.data, type : 'rsa'}).publicOrig;
 
     await validate(ctx.key.data.toString('base64'));
 
@@ -65,27 +63,27 @@ class SshHost {
         ctx.accept();
       }
     } catch(err) {
-      debug(err)
+      debug(err);
       return ctx.reject(['password', 'publickey'], true);
     }
   }
 
-   _prepare_forward_server(client, defered, accept, reject, name, info) {
+  _prepare_forward_server(client, defered, accept, reject, name, info) {
     if(name != "tcpip-forward")
       return reject();
 
-    var server = net.createServer(function(c){
+    var server = net.createServer(function(c) {
       try {
         var out = client.forwardOut(
           info.bindAddr, info.bindPort,
-          c.remoteAddress, c.remotePort, function(err, channel){
+          c.remoteAddress, c.remotePort, function(err, channel) {
             if(err) {
               //if the device is refusing lnks, maybe we should kill it ..
               debug("Revert fowarding as been declined", err);
               return;
             }
-            channel.on("error", function(){ }); // like i care
-            c.on("error", function(){ });       // same here
+            channel.on("error", function() { }); // like i care
+            c.on("error", function() { });       // same here
 
             channel.pipe(c);
             c.pipe(channel);
@@ -93,7 +91,7 @@ class SshHost {
             client.once('end', function() {
               c.destroy();
             });
-        });
+          });
         debug("Request forward", out);
       } catch(err) {
         c.end();
@@ -106,18 +104,18 @@ class SshHost {
       debug("Server forwarding lnk bound at %d ", server.address().port);
       defered.resolve(server.address().port);
       accept();
-    })
-    
+    });
+
     server.once('error', () => {
       client.end();
     });
 
     client.once('end', () => {
       server.close();
-    })
+    });
 
   }
 
-};
+}
 
-module.exports = SshHost; 
+module.exports = SshHost;

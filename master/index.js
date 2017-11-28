@@ -13,9 +13,9 @@ const ubkServer = require('ubk/server');
 
 const NS_mas4h = "mas4h";
 
-class Server extends ubkServer{
-  constructor(options){
-    super(options)
+class Server extends ubkServer {
+  constructor(options) {
+    super(options);
     this.lnks         = {};
     this.slaves       = {};
     this.reservedLnks = {};
@@ -24,9 +24,9 @@ class Server extends ubkServer{
         return Promise.reject('instance already registred and ready');
       this.slaves[slave_key] = this._clientsList[slave_key];
       this.slaves[slave_key].remote_port = remote_port;
-      client_list.forEach( client_detail => {
+      client_list.forEach(client_detail => {
         this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
-      })
+      });
       return Promise.resolve(true);
     });
 
@@ -61,17 +61,18 @@ class Server extends ubkServer{
   get_lnks_stats() {
     //send new links to less busy node
     var links = map(this.slaves, (v, k) => { return this.reservedLnks[k] || 0 ; }) ;
-    forOwn(this.lnks, function(lnk){
-      links[lnk.instance.client_key] ++;
+    forOwn(this.lnks, function(lnk) {
+      links[lnk.instance.client_key]++;
     });
     return links;
   }
-  
+
   //pick a random target from slaves list
-  new_link(){
+  new_link() {
     var links = this.get_lnks_stats();
-    debug(links)
-    var slave_id = indexOf(links, min(links)), slave = this.slaves[slave_id];
+    debug(links);
+    var slave_id = indexOf(links, min(links));
+    var slave = this.slaves[slave_id];
     debug("Choosing slave_id : %s over ", slave_id, links);
 
     if(!slave_id)
@@ -80,9 +81,9 @@ class Server extends ubkServer{
     if(!this.reservedLnks[slave_id])
       this.reservedLnks[slave_id] = 0;
 
-    this.reservedLnks[slave_id] ++;
+    this.reservedLnks[slave_id]++;
     setTimeout(() => {
-      this.reservedLnks[slave_id] --;
+      this.reservedLnks[slave_id]--;
     }, 2500);
 
     var lnk = {
@@ -94,7 +95,7 @@ class Server extends ubkServer{
     return lnk;
   }
 
-  _expand_slave(slave){
+  _expand_slave(slave) {
     var links = this.get_lnks_stats();
     return merge({'slave_config' : slave.slave_config, 'links' : links[slave.client_key] }, slave.export_json());
   }

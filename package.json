@@ -6,13 +6,19 @@
   "dependencies": {
     "debug": "^3.1.0",
     "mout": "^1.0.0",
-    "nyks": "^4.1.6",
+    "nyks": "^4.1.10",
     "ssh2": "^0.5.5",
-    "ubk": "^4.1.1"
+    "ubk": "^5.0.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "ivs-jssc": "^2.1.2"
+  },
   "scripts": {
-    "test": "exit 0"
+    "preversion": "npm run checkall",
+    "jscs": "jscs --config=node_modules/ivs-jssc/ivs-node.jscsrc master slave",
+    "eslint": "eslint --config=node_modules/ivs-jssc/ivs-node.eslintrc.js master slave",
+    "checkall": "npm run eslint && npm run jscs",
+    "test": "npm run eslint && npm run jscs"
   },
   "repository": {
     "type": "git",
