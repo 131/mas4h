@@ -48,15 +48,16 @@ class SshHost {
     await validate(ctx.key.data.toString('base64'));
 
     try {
-      if (ctx.signature) {
+      if(ctx.signature) {
         debug("Verify signature");
         var verifier = crypto.createVerify(ctx.sigAlgo);
         verifier.update(ctx.blob);
-        if (verifier.verify(pem, ctx.signature, 'binary')) {
+        if(verifier.verify(pem, ctx.signature, 'binary')) {
           ctx.accept();
           defered.resolve();
-        } else
+        } else {
           ctx.reject(['password', 'publickey'], true);
+        }
       } else {
         // if no signature present, that means the client is just checking
         // the validity of the given public key

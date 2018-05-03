@@ -22,7 +22,9 @@ class Server extends ubkServer {
     this.register_rpc(NS_mas4h, "instance_ready", (slave_key, remote_port, client_list) => {
       if(this.slaves[slave_key])
         return Promise.reject('instance already registred and ready');
+
       this.slaves[slave_key] = this._clientsList[slave_key];
+
       this.slaves[slave_key].remote_port = remote_port;
       client_list.forEach(client_detail => {
         this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
@@ -60,7 +62,7 @@ class Server extends ubkServer {
 
   get_lnks_stats() {
     //send new links to less busy node
-    var links = map(this.slaves, (v, k) => { return this.reservedLnks[k] || 0 ; }) ;
+    var links = map(this.slaves, (v, k) => { return this.reservedLnks[k] || 0; });
     forOwn(this.lnks, function(lnk) {
       links[lnk.instance.client_key]++;
     });

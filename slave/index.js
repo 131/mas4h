@@ -26,12 +26,12 @@ class Instance extends ubkClient {
 
   async run() {
 
-    var server = new SSH_Host(this.options.key, async(client) => {
+    var server = new SSH_Host(this.options.key, async (client, infos) => {
       client.on('error', (err) => debug('client error', err));
 
       try {
         var details;
-        await server.check_authentication(client, async(pubkey) => {
+        await server.check_authentication(client, async (pubkey) => {
           details = await this.validate_client(pubkey);
           if(!details.client_key)
             throw 'no client_key';
@@ -41,6 +41,7 @@ class Instance extends ubkClient {
         });
 
         details.port = await server.prepare_forward_server(client);
+        details.remoteAddress = infos.ip;
 
         await this.new_client(client, details);
         client.on('end', this.lost_client.bind(this, client, details));

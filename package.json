@@ -11,14 +11,13 @@
     "ubk": "^5.0.1"
   },
   "devDependencies": {
-    "ivs-jssc": "^2.1.2"
+    "eslint-plugin-ivs": "^1.0.9"
   },
   "scripts": {
     "preversion": "npm run checkall",
-    "jscs": "jscs --config=node_modules/ivs-jssc/ivs-node.jscsrc master slave",
-    "eslint": "eslint --config=node_modules/ivs-jssc/ivs-node.eslintrc.js master slave",
-    "checkall": "npm run eslint && npm run jscs",
-    "test": "npm run eslint && npm run jscs"
+    "eslint": "eslint master slave",
+    "checkall": "npm run eslint",
+    "test": "npm run eslint"
   },
   "repository": {
     "type": "git",
