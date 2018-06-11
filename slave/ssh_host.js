@@ -103,7 +103,7 @@ class SshHost {
 
     server.listen(0, () => {
       debug("Server forwarding lnk bound at %d ", server.address().port);
-      defered.resolve(server.address().port);
+      defered.resolve({port : server.address().port, ...info});
       accept();
     });
 

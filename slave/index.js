@@ -39,9 +39,8 @@ class Instance extends ubkClient {
           debug("New client, validated device key is '%s'.", details.client_key);
           details  = Object.assign({client_key : details.client_key}, {remote_details : details}) || {};
         });
-
-        details.port = await server.prepare_forward_server(client);
-        details.remoteAddress = infos.ip;
+        const forwardInfo = await server.prepare_forward_server(client);
+        details = {...details, ...forwardInfo, remoteAddress : infos.ip};
 
         await this.new_client(client, details);
         client.on('end', this.lost_client.bind(this, client, details));
