@@ -34,6 +34,8 @@ class Server extends ubkServer {
 
     this.register_rpc(NS_mas4h, "new_tunnel", (slave_key, client_detail) => {
       debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${client_detail.client_key} on port:${client_detail.port}`);
+      if(this.lnks[client_detail.client_key])
+        throw `${client_detail.client_key} alrady connected`;
       this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
       this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), client_detail.client_key);
       return Promise.resolve(client_detail.port);
