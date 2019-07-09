@@ -54,8 +54,14 @@ class Instance extends ubkClient {
 
     this.on("registered", () => {
       debug("Sending registerration ack");
-      this.send(NS_mas4h, "instance_ready", this.client_key, port, Object.values(this._localClients));
+      this.send(NS_mas4h, "instance_ready", this.client_key, port, Object.values(this._localClients).map(c => c.details));
     });
+
+    this.register_rpc(NS_mas4h, "kick", (client_key) => {
+      var {client} = this._localClients[client_key];
+      client.end();
+    });
+
 
     super.connect();
   }
@@ -79,7 +85,7 @@ class Instance extends ubkClient {
   async new_client(client, details) {
 
     //register in localClient before remote ack (prevent free_port confusion)
-    this._localClients[details.client_key] = details;
+    this._localClients[details.client_key] = {details, client};
 
     //notify central server, then attach client key
     try {
