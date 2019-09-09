@@ -76,10 +76,12 @@ class Instance extends ubkClient {
   async lost_client(client, details) {
     debug("Client %s disconnected, local binding was %s", details.client_key, details.port);
 
-    //notify central server, the remove client reference
-    var response = await this.send(NS_mas4h, "lost_tunnel", details.client_key);
+    //try to notify central server (maybe unavailable)
+    try {
+      await this.send(NS_mas4h, "lost_tunnel", details.client_key);
+    } catch(err) { }
+
     delete this._localClients[details.client_key];
-    return response;
   }
 
   async new_client(client, details) {
