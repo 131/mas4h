@@ -4,6 +4,7 @@ const util        = require('util');
 const min         = require('mout/object/min');
 const indexOf     = require('nyks/object/indexOf');
 const map         = require('mout/object/map');
+const filter      = require('mout/object/filter');
 const merge       = require('mout/object/merge');
 const forOwn      = require('mout/object/forOwn');
 const forIn       = require('mout/object/forIn');
@@ -62,9 +63,10 @@ class Server extends ubkServer {
     });
   }
 
-  get_lnks_stats() {
+  get_lnks_stats(region) {
     //send new links to less busy node
-    var links = map(this.slaves, (v, k) => { return this.reservedLnks[k] || 0; });
+    const slaves = region ? filter(this.slaves, ({slave_config = {}}) => slave_config.region == region) : this.slaves;
+    var links = map(slaves, (v, k) => { return this.reservedLnks[k] || 0; });
     forOwn(this.lnks, function(lnk) {
       links[lnk.instance.client_key]++;
     });
@@ -72,8 +74,8 @@ class Server extends ubkServer {
   }
 
   //pick a random target from slaves list
-  new_link() {
-    var links = this.get_lnks_stats();
+  new_link(region) {
+    var links = this.get_lnks_stats(region);
     debug(links);
     var slave_id = indexOf(links, min(links));
     var slave = this.slaves[slave_id];
