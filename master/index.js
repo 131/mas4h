@@ -68,7 +68,8 @@ class Server extends ubkServer {
     const slaves = region ? filter(this.slaves, ({slave_config = {}}) => slave_config.region == region) : this.slaves;
     var links = map(slaves, (v, k) => { return this.reservedLnks[k] || 0; });
     forOwn(this.lnks, function(lnk) {
-      links[lnk.instance.client_key]++;
+      if(links[lnk.instance.client_key] != undefined)
+        links[lnk.instance.client_key]++;
     });
     return links;
   }
