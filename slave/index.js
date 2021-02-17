@@ -21,7 +21,7 @@ class Instance extends ubkClient {
     this._localClients = {};
 
     var key  = utils.parseKey(this.options.key);
-    this.client_key = md5(utils.genPublicKey(key).public);
+    this.client_key = md5(key.getPublicSSH());
   }
 
   async run() {

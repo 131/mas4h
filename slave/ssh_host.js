@@ -43,7 +43,7 @@ class SshHost {
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
-    var pem = utils.genPublicKey({public : ctx.key.data, type : 'rsa'}).publicOrig;
+    var pem = utils.parseKey(ctx.key.data).getPublicPEM();
 
     await validate(ctx.key.data.toString('base64'));
 
