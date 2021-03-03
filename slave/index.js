@@ -43,6 +43,10 @@ class Instance extends ubkClient {
         details = {...details, ...forwardInfo, remoteAddress : infos.ip};
 
         await this.new_client(client, details);
+        client.on('error', () => {
+          debug("error client will close '%s'.", details.client_key);
+          client.end();
+        });
         client.on('end', this.lost_client.bind(this, client, details));
       } catch(err) {
         debug("New link failure", err);
@@ -79,7 +83,9 @@ class Instance extends ubkClient {
     //try to notify central server (maybe unavailable)
     try {
       await this.send(NS_mas4h, "lost_tunnel", details.client_key);
-    } catch(err) { }
+    } catch(err) {
+      debug("cant send lost tunnel to server for %s", details.client_key);
+    }
 
     delete this._localClients[details.client_key];
   }
@@ -92,6 +98,7 @@ class Instance extends ubkClient {
     //notify central server, then attach client key
     try {
       await this.send(NS_mas4h, "new_tunnel", this.client_key, details);
+      debug("Client %s connected and validated", details.client_key);
     } catch(err) {
       delete this._localClients[details.client_key];
       throw err;
