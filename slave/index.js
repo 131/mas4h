@@ -92,6 +92,10 @@ class Instance extends ubkClient {
 
   async new_client(client, details) {
 
+    if(this._localClients[details.client_key]) {
+      debug("%s already in the clients list", details.client_key);
+      return client.end();
+    }
     //register in localClient before remote ack (prevent free_port confusion)
     this._localClients[details.client_key] = {details, client};
 
