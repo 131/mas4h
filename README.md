@@ -3,7 +3,7 @@
 [mas4sh](https://github.com/131/mas4sh) is a scalable server infrastructure to connect (a lot of) remote linux (i.e. SSH capable) devices to a central server (& boucing clusters) using reverse SSH tunnels. The ssh2 crazy magic is powered by the excellent [ssh2 library](https://github.com/mscdex/ssh2) by Brian White. mas4h (& dependencies) requires ES7 capabilities.
 
 
-[![Build Status](https://travis-ci.org/131/mas4h.svg?branch=master)](https://travis-ci.org/131/mas4h)
+[![Build Status](https://github.com/131/mas4h/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/131/mas4h/actions/workflows/test.yml)
 [![Version](https://img.shields.io/npm/v/mas4h.svg)](https://www.npmjs.com/package/mas4h)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
@@ -32,8 +32,8 @@ On the master side, you'll have to implement how to lookup devices RSA public ke
 *  chain : function(err, device_details)
 *     device_details : {device_key : SOMEUNIQUESTRING [, whatever you want ]}
 */
-async validate_device(pubkey) {
-  return {}; //whatever you want but at least a "client_key" that will be used as unique ID for the client (i.e. pubkey signature)
+async validate_device(pmas4hey) {
+  return {}; //whatever you want but at least a "client_key" that will be used as unique ID for the client (i.e. pmas4hey signature)
 }
 ```
 Per design, positive responses might be cached by mas4h slaves.
