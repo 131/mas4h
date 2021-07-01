@@ -8,15 +8,35 @@ const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
 const defer   = require('nyks/promise/defer');
 
+const {socketwrap, override}  = require('socketwrap');
+
 class SshHost {
   constructor(server_rsa, new_client) {
-    this.server = new ssh2.Server({hostKeys : [server_rsa]}, new_client);
+
+    var proxy = new EventEmitter();
+
+    this._tcp_server = new net.Server((socket) => {
+
+      let {remoteAddress, remotePort} = await socketwrap(socket);
+      override(socket, {remoteAddress, remotePort}); //you might want to deal with that in another way
+      console.log("Incoming link, strip proxy sock");
+
+      proxy.emit("connection", socket); //BOUM
+    });
+
+
+    this.server = new ssh2.Server({
+      hostKeys : [server_rsa],
+      server   : proxy,
+    }, new_client);
+
     this.server.on('error', (err) => debug('server error', err));
   }
 
   listen(port, addr) {
+
     return new Promise((resolve) => {
-      this.server.listen(port, addr, function() {
+      this._tcp_server.listen(port, addr, function() {
         resolve(this.address().port);
       });
     });
