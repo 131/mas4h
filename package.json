@@ -8,7 +8,7 @@
     "mout": "^1.0.0",
     "nyks": "^4.1.10",
     "socketwrap": "git+https://github.com/131/socketwrap.git",
-    "ssh2": "git+https://github.com/131/ssh2.git",
+    "ssh2": "git+https://github.com/131/ssh2.git#merged",
     "ubk": "^5.0.1"
   },
   "devDependencies": {

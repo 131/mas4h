@@ -39,7 +39,7 @@ class SshHost {
   listen(port, addr) {
 
     return new Promise((resolve) => {
-      this.server.listen(port, addr, function() {
+      this._tcp_server.listen(port, addr, function() {
         resolve(this.address().port);
       });
     });
