@@ -1,6 +1,8 @@
 'use strict';
 
 const net    = require('net');
+const crypto = require('crypto');
+
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
@@ -73,14 +75,16 @@ class SshHost {
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
-    var pubKey = utils.parseKey("ssh-rsa " + ctx.key.data.toString('base64'));
+    var pem = utils.parseKey("ssh-rsa " + ctx.key.data.toString('base64')).getPublicPEM();
+    await validate(ctx.key.data.toString('base64'));
 
     try {
-      await validate(ctx.key.data.toString('base64'));
 
       if(ctx.signature) {
         debug("Verify signature");
-        if(pubKey.verify(ctx.blob, ctx.signature)) {
+        var verifier = crypto.createVerify(ctx.sigAlgo);
+        verifier.update(ctx.blob);
+        if(verifier.verify(pem, ctx.signature, 'binary')) {
           ctx.accept();
           defered.resolve();
         } else {
