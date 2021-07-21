@@ -12,32 +12,41 @@ const {socketwrap, override}  = require('socketwrap');
 const {EventEmitter} = require('events');
 
 class SshHost {
-  constructor(server_rsa, new_client) {
+  constructor({server_rsa, use_socketwrap}, new_client) {
 
-    var proxy = new EventEmitter();
+    if(use_socketwrap) {
 
-    this._tcp_server = new net.Server(async (socket) => {
+      this._server = new ssh2.Server({
+        hostKeys : [server_rsa],
+      }, new_client);
+      this._server.on('error', (err) => debug('server error', err));
 
-      let {remoteAddress, remotePort} = await socketwrap(socket);
-      override(socket, {remoteAddress, remotePort}); //you might want to deal with that in another way
-      console.log("Incoming link, strip proxy sock");
+    } else {
 
-      proxy.emit("connection", socket); //BOUM
-    });
+      var proxy = new EventEmitter();
 
+      this._server = new net.Server(async (socket) => {
+        let {remoteAddress, remotePort} = await socketwrap(socket);
+        override(socket, {remoteAddress, remotePort}); //you might want to deal with that in another way
+        proxy.emit("connection", socket); //BOUM
+      });
 
-    this.server = new ssh2.Server({
-      hostKeys : [server_rsa],
-      server   : proxy,
-    }, new_client);
+      this._ssh_server = new ssh2.Server({
+        hostKeys : [server_rsa],
+        server   : proxy,
+      }, new_client);
 
-    this.server.on('error', (err) => debug('server error', err));
+      this._ssh_server.on('error', (err) => debug('server error', err));
+    }
+
   }
 
   listen(port, addr) {
 
+
+
     return new Promise((resolve) => {
-      this._tcp_server.listen(port, addr, function() {
+      this._server.listen(port, addr, function() {
         resolve(this.address().port);
       });
     });

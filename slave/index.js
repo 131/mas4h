@@ -15,6 +15,7 @@ class Instance extends ubkClient {
       key : null, //put server private key here
       ssh_port   : 1443,
       ssh_addr   : '0.0.0.0',
+      use_socketwrap : false,
     }, options);
 
     super(options);
@@ -26,7 +27,10 @@ class Instance extends ubkClient {
 
   async run() {
 
-    var server = new SSH_Host(this.options.key, async (client, infos) => {
+    var server = new SSH_Host({
+      server_rsa     : this.options.key,
+      use_socketwrap : this.options.use_socketwrap
+    }, async (client, infos) => {
       client.on('error', (err) => debug('client error', err));
 
       try {
