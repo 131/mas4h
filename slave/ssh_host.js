@@ -16,7 +16,7 @@ const {EventEmitter} = require('events');
 class SshHost {
   constructor({server_rsa, use_socketwrap}, new_client) {
 
-    if(use_socketwrap) {
+    if(!use_socketwrap) {
 
       this._server = new ssh2.Server({
         hostKeys : [server_rsa],
