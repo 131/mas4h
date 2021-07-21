@@ -1,8 +1,6 @@
 'use strict';
 
 const net    = require('net');
-const crypto = require('crypto');
-
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
@@ -11,7 +9,7 @@ const defer   = require('nyks/promise/defer');
 
 
 const {socketwrap, override}  = require('socketwrap');
-const {EventEmitter} = require('events')
+const {EventEmitter} = require('events');
 
 class SshHost {
   constructor(server_rsa, new_client) {
