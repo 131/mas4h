@@ -68,9 +68,9 @@ class SshHost {
 
     var pubKey = utils.parseKey("ssh-rsa " + ctx.key.data.toString('base64'));
 
-    await validate(ctx.key.data.toString('base64'));
-
     try {
+      await validate(ctx.key.data.toString('base64'));
+
       if(ctx.signature) {
         debug("Verify signature");
         if(pubKey.verify(ctx.blob, ctx.signature)) {
