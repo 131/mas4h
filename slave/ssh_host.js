@@ -1,22 +1,43 @@
 'use strict';
 
 const net    = require('net');
-const crypto = require('crypto');
-
 const ssh2   = require('ssh2');
 const utils  = ssh2.utils;
 const debug       = require('debug')('mas4h:slave');
 const defer   = require('nyks/promise/defer');
 
+
+
+const {socketwrap, override}  = require('socketwrap');
+const {EventEmitter} = require('events');
+
 class SshHost {
   constructor(server_rsa, new_client) {
-    this.server = new ssh2.Server({hostKeys : [server_rsa]}, new_client);
+
+    var proxy = new EventEmitter();
+
+    this._tcp_server = new net.Server(async (socket) => {
+
+      let {remoteAddress, remotePort} = await socketwrap(socket);
+      override(socket, {remoteAddress, remotePort}); //you might want to deal with that in another way
+      console.log("Incoming link, strip proxy sock");
+
+      proxy.emit("connection", socket); //BOUM
+    });
+
+
+    this.server = new ssh2.Server({
+      hostKeys : [server_rsa],
+      server   : proxy,
+    }, new_client);
+
     this.server.on('error', (err) => debug('server error', err));
   }
 
   listen(port, addr) {
+
     return new Promise((resolve) => {
-      this.server.listen(port, addr, function() {
+      this._tcp_server.listen(port, addr, function() {
         resolve(this.address().port);
       });
     });
@@ -43,16 +64,14 @@ class SshHost {
     if(!(ctx.method === 'publickey' && ctx.key.algo == "ssh-rsa"))
       return ctx.reject(['password', 'publickey'], true);
 
-    var pem = utils.parseKey("ssh-rsa " + ctx.key.data.toString('base64')).getPublicPEM();
-
-    await validate(ctx.key.data.toString('base64'));
+    var pubKey = utils.parseKey("ssh-rsa " + ctx.key.data.toString('base64'));
 
     try {
+      await validate(ctx.key.data.toString('base64'));
+
       if(ctx.signature) {
         debug("Verify signature");
-        var verifier = crypto.createVerify(ctx.sigAlgo);
-        verifier.update(ctx.blob);
-        if(verifier.verify(pem, ctx.signature, 'binary')) {
+        if(pubKey.verify(ctx.blob, ctx.signature)) {
           ctx.accept();
           defered.resolve();
         } else {
