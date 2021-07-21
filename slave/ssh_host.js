@@ -28,6 +28,7 @@ class SshHost {
       var proxy = new EventEmitter();
 
       this._server = new net.Server(async (socket) => {
+        socket.on('error', (err) => {debug(err);});
         let {remoteAddress, remotePort} = await socketwrap(socket);
         override(socket, {remoteAddress, remotePort}); //you might want to deal with that in another way
         proxy.emit("connection", socket); //BOUM
