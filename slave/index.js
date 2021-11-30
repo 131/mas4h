@@ -1,11 +1,11 @@
 'use strict';
+const os        = require('os');
 
 const md5       = require('nyks/crypto/md5');
 const ubkClient = require('ubk/client/tcp');
 const SSH_Host  = require('./ssh_host.js');
 const utils     = require('ssh2').utils;
-const debug       = require('debug')('mas4h:slave');
-
+const debug     = require('debug')('mas4h:slave');
 const NS_mas4h = "mas4h";
 
 class Instance extends ubkClient {
@@ -20,6 +20,8 @@ class Instance extends ubkClient {
 
     super(options);
     this._localClients = {};
+    const localIpv4Ips = Object.values(os.networkInterfaces()).reduce((v, c) => [...v, ...c], []).filter(v => v.family === "IPv4" && !v.internal);
+    this.options.registration_parameters['ips'] = localIpv4Ips.map(v => v.address);
 
     var key  = utils.parseKey(this.options.key);
     this.client_key = md5(key.getPublicSSH());
