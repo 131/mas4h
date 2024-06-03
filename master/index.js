@@ -5,7 +5,6 @@ const min         = require('mout/object/min');
 const indexOf     = require('nyks/object/indexOf');
 const map         = require('mout/object/map');
 const filter      = require('mout/object/filter');
-const merge       = require('mout/object/merge');
 const forOwn      = require('mout/object/forOwn');
 const forIn       = require('mout/object/forIn');
 const debug       = require('debug')('mas4h:master');
@@ -20,40 +19,52 @@ class Server extends ubkServer {
     this.lnks         = {};
     this.slaves       = {};
     this.reservedLnks = {};
-    this.register_rpc(NS_mas4h, "instance_ready", (slave_key, remote_port, client_list) => {
+
+    this.register_client_rpc(NS_mas4h, "instance_ready", ({client}, slave_key, remote_port, client_links) => {
       if(this.slaves[slave_key])
-        return Promise.reject('instance already registred and ready');
+        throw `Instance already registered`;
 
-      this.slaves[slave_key] = this._clientsList[slave_key];
-
+      this.slaves[slave_key] = client;
       this.slaves[slave_key].remote_port = remote_port;
-      client_list.forEach(client_detail => {
-        this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
-      });
-      return Promise.resolve(true);
+
+      for(let link of client_links)
+        this.lnks[link.client_key] = {...link, instance : this.slaves[slave_key]};
+      return true;
     });
 
-    this.register_rpc(NS_mas4h, "new_tunnel", (slave_key, client_detail) => {
-      debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${client_detail.client_key} on port:${client_detail.port}`);
-      if(this.lnks[client_detail.client_key])
-        throw `${client_detail.client_key} alrady connected`;
-      this.lnks[client_detail.client_key] = Object.assign({}, { instance : this.slaves[slave_key]}, client_detail);
-      this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), client_detail.client_key);
-      return Promise.resolve(client_detail.port);
+    this.register_rpc(NS_mas4h, "new_tunnel", (slave_key, link) => {
+
+      debug(`Trying to open new lnk slave_key:${slave_key}, device_key:${link.client_key} on port:${link.port}`);
+
+      if(this.lnks[link.client_key])
+        throw `${link.client_key} already connected`;
+
+      this.lnks[link.client_key] =  {...link, instance : this.slaves[slave_key]};
+      this.emit(util.format("%s:%s", NS_mas4h, "new_tunnel"), link.client_key);
+      return link.port;
     });
 
     this.register_rpc(NS_mas4h, "validate_client", this.validate_device.bind(this));
 
-    this.register_rpc(NS_mas4h, "lost_tunnel", (device_key) => {
+    this.register_client_rpc(NS_mas4h, "lost_tunnel", ({client}, device_key) => {
+      let current = this.lnks[device_key];
+
+      if(current && current.instance.client_key != client.client_key) {
+        debug("Keeping currently connected device %s (bound to %s)", device_key, current.instance.client_key);
+        return false;
+      }
+
       debug("Lost client ", device_key);
+
       delete this.lnks[device_key];
       this.emit(util.format("%s:%s", NS_mas4h, "lost_tunnel"), device_key);
-      return Promise.resolve(true);
+      return true;
     });
 
     //when an instance is gone, we can assume all existings lnks are dead
     this.on("base:unregistered_client", (client) => {
       delete this.slaves[client.client_key];
+
       forIn(this.lnks, (lnk, lnk_id) => {
         if(lnk.instance.client_key == client.client_key) {
           debug("Cleaning up deprecated lnk %s", lnk_id);
@@ -104,7 +115,7 @@ class Server extends ubkServer {
 
   _expand_slave(slave) {
     var links = this.get_lnks_stats();
-    return merge({'slave_config' : slave.slave_config, 'links' : links[slave.client_key] }, slave.export_json());
+    return {'slave_config' : slave.slave_config, 'links' : links[slave.client_key], ...slave.export_json() };
   }
 
 }

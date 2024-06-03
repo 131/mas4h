@@ -9,14 +9,15 @@
     "nyks": "^4.1.10",
     "socketwrap": "^0.9.0",
     "ssh2": "^0.8.3",
-    "ubk": "^5.0.1"
+    "ubk": "^7.0.1"
   },
   "devDependencies": {
-    "eslint-plugin-ivs": "^1.0.9"
+    "eslint": "^8.57.0",
+    "eslint-plugin-ivs": "^4.0.1"
   },
   "scripts": {
     "preversion": "npm run checkall",
-    "eslint": "eslint master slave",
+    "eslint": "eslint .",
     "checkall": "npm run eslint",
     "test": "npm run eslint"
   },
