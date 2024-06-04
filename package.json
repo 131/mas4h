@@ -9,7 +9,7 @@
     "nyks": "^4.1.10",
     "socketwrap": "^0.9.0",
     "ssh2": "^0.8.3",
-    "ubk": "^7.0.1"
+    "ubk": "^7.0.3"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
